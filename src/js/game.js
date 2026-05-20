@@ -15,7 +15,7 @@ const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
 
 const entities = [];
 
-const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex });
+const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age });
 
 const saveState = () => {
   tank.save(entities.filter(e => e.type !== 'flake').map(serializeEntity));
@@ -25,12 +25,12 @@ const loadState = async () => {
   const data = await tank.load();
   if (data && data.length) {
     data.forEach(s => {
-      if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; entities.push(f); }
+      if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
       if (s.type === 'crab') { const c = createCrab(TANK, s.x, s.y); c.sex = s.sex; entities.push(c); }
       if (s.type === 'snail') { const n = createSnail(TANK, s.x, s.y); n.sex = s.sex; entities.push(n); }
     });
   } else {
-    for (let i = 0; i < 6; i++) entities.push(createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)));
+    for (let i = 0; i < 6; i++) { const f = createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)); f.age = 3600; entities.push(f); }
     for (let i = 0; i < 3; i++) entities.push(createCrab(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10)));
   }
 };
@@ -46,7 +46,7 @@ function feedAt(cx) {
 }
 
 const SPAWNERS = {
-  fish: () => createFish(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+  fish: () => { const f = createFish(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1); f.age = 3600; return f; },
   crab: () => createCrab(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
   snail: () => createSnail(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
 };
@@ -76,7 +76,7 @@ canvas.addEventListener('mousedown', (e) => {
   if (snailHit) {
     draggedSnail = snailHit;
     snailHit.dragged = true;
-    snailHit.vx = 0; snailHit.vy = 0; snailHit.target = null; snailHit.goalD = -1;
+    snailHit.vx = 0; snailHit.vy = 0; snailHit.target = null; snailHit.goalX = undefined; snailHit.goalY = undefined;
   }
 });
 

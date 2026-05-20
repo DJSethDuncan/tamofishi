@@ -5,9 +5,10 @@ const createFish = (tank, x, y) => {
     vx: 0.08,
     bobPhase: Math.random() * Math.PI * 2,
     idle: 0,
-    color: '#33ff33',
+    color: '#2a8a2a',
     target: null,
     panic: 0,
+    age: 0,
     sex: Math.random() < 0.5 ? 'f' : 'm',
   };
 
@@ -55,6 +56,8 @@ const createFish = (tank, x, y) => {
   };
 
   f.update = (dt, entities) => {
+    f.age += dt;
+    checkNudge(f, entities);
     if (!f.panic && entities.some(e => e.type === 'crab' && Math.hypot(e.x - f.x, e.y - f.y) < 2)) startPanic(f);
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
     else if (chaseCursor(f, 0.15)) { /* chasing cursor */ }
@@ -79,8 +82,28 @@ const createFish = (tank, x, y) => {
   };
 
   f.draw = (ctx) => {
-    ctx.fillStyle = f.color;
-    ctx.fillRect(Math.round(f.x), Math.round(f.y), 1, 1);
+    const rx = Math.round(f.x), ry = Math.round(f.y);
+    const dir = f.vx >= 0 ? 1 : -1;
+    ctx.fillStyle = '#2a8a2a';
+    if (f.age < 900) {
+      // Baby: 1 bright green box
+      ctx.fillStyle = '#33ff33';
+      ctx.fillRect(rx, ry, 1, 1);
+    } else if (f.age < 3600) {
+      // Juvenile: 2 boxes, front is bright
+      ctx.fillRect(rx, ry, 1, 1);
+      ctx.fillStyle = '#33ff33';
+      ctx.fillRect(rx + dir, ry, 1, 1);
+    } else {
+      // Adult: 3 body + animated tail
+      ctx.fillRect(rx - 1, ry, 3, 1);
+      if (Math.abs(f.vx) > 0.005) {
+        const tailY = Math.floor(f.bobPhase * 3) % 2 === 0 ? 1 : -1;
+        ctx.fillRect(rx - dir, ry + tailY, 1, 1);
+      }
+      ctx.fillStyle = '#33ff33';
+      ctx.fillRect(rx + dir, ry, 1, 1);
+    }
   };
 
   return f;

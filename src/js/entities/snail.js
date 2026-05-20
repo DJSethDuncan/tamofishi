@@ -33,7 +33,7 @@ const createSnail = (tank, x, y) => {
     vx: 0, vy: 0,
     idle: 1 + Math.random() * 3,
     target: null,
-    goalD: -1,
+    goalX: undefined, goalY: undefined,
     sex: Math.random() < 0.5 ? 'f' : 'm',
     facingX: 1, facingY: 0,
     color: '#2a6a2a',
@@ -53,45 +53,52 @@ const createSnail = (tank, x, y) => {
 
   s.update = (dt, entities) => {
     if (s.dragged) return;
+    checkNudge(s, entities);
     if (s.target && (s.target.eaten || !entities.includes(s.target))) s.target = null;
 
     if (!onSurface()) {
       // Falling — gravity only
       s.vy += GRAVITY * dt * 3;
       s.vx *= 0.95;
-      s.goalD = -1;
+      s.goalX = undefined; s.goalY = undefined;
       s.target = null;
     } else if (s.idle > 0) {
       s.idle -= dt;
       s.vx = 0; s.vy = 0;
     } else if (s.target) {
       chaseFood();
-    } else if (s.goalD >= 0) {
-      const curD = toSurface(s.x, s.y);
-      const diff = s.goalD - curD;
-      if (Math.abs(diff) < 0.5) {
-        s.goalD = -1;
-        s.vx = 0; s.vy = 0;
-        s.idle = 1 + Math.random() * 4;
+    } else if (s.goalX !== undefined) {
+      const onWall = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
+      if (onWall) {
+        // Climbing wall toward goalY
+        const dy = (s.goalY !== undefined ? s.goalY : s.y) - s.y;
+        if (Math.abs(dy) < 0.5) { s.goalX = undefined; s.goalY = undefined; s.vx = 0; s.vy = 0; s.idle = 1 + Math.random() * 3; }
+        else { s.vy = Math.sign(dy) * SPEED; s.vx = 0; }
       } else {
-        const dir = Math.sign(diff);
-        const next = fromSurface(curD + dir * SPEED);
-        s.vx = (next.x - s.x); s.vy = (next.y - s.y);
+        // On floor toward goalX
+        const dx = s.goalX - s.x;
+        if (Math.abs(dx) < 0.5) { s.goalX = undefined; s.vx = 0; s.vy = 0; s.idle = 1 + Math.random() * 3; }
+        else { s.vx = Math.sign(dx) * SPEED; s.vy = 0; }
       }
     } else {
-      // Rare wall detachment: ~once per 10 minutes at 60fps
+      // Rare wall detachment
       const onWall = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
       if (onWall && Math.random() < 0.00003) {
         s.vx = (s.x < (tank.x1 + tank.x2) / 2 ? 1 : -1) * 0.02;
-        s.vy = 0;
+        s.vy = 0; s.goalX = undefined;
       } else {
         s.target = findNearestFlake(s, entities, floorOnly);
         if (!s.target) {
           const r = Math.random();
-          if (r < 0.6) {
-            s.goalD = Math.random() * PERIM;
+          if (r < 0.5) {
+            // Pick a spot on the floor
+            s.goalX = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4);
+          } else if (r < 0.7) {
+            // Head to a wall and climb
+            s.goalX = Math.random() < 0.5 ? tank.x1 : tank.x2;
+            s.goalY = tank.y1 + 2 + Math.random() * (WALL_H - 4);
           } else {
-            s.idle = 2 + Math.random() * 5;
+            s.idle = 1 + Math.random() * 3;
           }
         }
       }
@@ -104,14 +111,14 @@ const createSnail = (tank, x, y) => {
     s.x += s.vx;
     s.y += s.vy;
 
-    // Land on floor
-    if (s.y >= FLOOR) { s.y = FLOOR; s.vy = 0; s.vx = 0; s.goalD = -1; if (!s.idle) s.idle = 1 + Math.random() * 3; }
+    // Land on floor (only trigger once, when actually falling)
+    if (s.y >= FLOOR) { s.y = FLOOR; if (s.vy > 0) { s.vy = 0; s.vx = 0; s.goalX = undefined; s.goalY = undefined; s.idle = 0.5 + Math.random() * 1.5; } s.vy = 0; }
     // Hit top of wall — detach and fall
     const onWallNow = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
     if (onWallNow && s.y <= tank.y1) {
       s.y = tank.y1;
       s.x += (s.x < (tank.x1 + tank.x2) / 2 ? 1 : -1) * 2;
-      s.vx = 0; s.vy = 0; s.goalD = -1;
+      s.vx = 0; s.vy = 0; s.goalX = undefined; s.goalY = undefined;
     }
     if (s.x < tank.x1) s.x = tank.x1;
     if (s.x > tank.x2) s.x = tank.x2;
@@ -128,16 +135,16 @@ const createSnail = (tank, x, y) => {
       const inward = rx <= tank.x1 ? 1 : -1;
       ctx.fillRect(rx, ry, 1, 2);
       ctx.fillRect(rx + inward, ry, 1, 2);
-      // Head: extra pixel on the wall-side row
       if (moving) {
+        ctx.fillStyle = '#33ff33';
         const head = s.facingY < 0 ? -1 : 1;
         ctx.fillRect(rx, ry + (head > 0 ? 2 : -1), 1, 1);
       }
     } else {
       // Shell: 2x2 block on floor
       ctx.fillRect(rx, ry - 1, 2, 2);
-      // Head: extra pixel on the bottom row
       if (moving) {
+        ctx.fillStyle = '#33ff33';
         const head = s.facingX > 0 ? 1 : -1;
         ctx.fillRect(rx + (head > 0 ? 2 : -1), ry, 1, 1);
       }
