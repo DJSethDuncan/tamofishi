@@ -1,0 +1,2 @@
+html, body { margin: 0; background: #0a0a0a; overflow: hidden; }
+canvas { display: block; image-rendering: pixelated; width: 100vw; height: 100vh; }
