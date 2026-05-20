@@ -1,4 +1,4 @@
-const W = 60, H = 40;
+const W = 120, H = 40;
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 canvas.width = W;
@@ -15,6 +15,7 @@ const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
 
 const entities = [
   createFish(TANK, TANK.x1 + 10, TANK.y1 + 8),
+  createCrab(TANK, TANK.x1 + 25),
 ];
 
 function feed() {
