@@ -13,10 +13,9 @@ const COLORS = {
 
 const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
 
-const entities = [
-  createFish(TANK, TANK.x1 + 10, TANK.y1 + 8),
-  createCrab(TANK, TANK.x1 + 25),
-];
+const entities = [];
+for (let i = 0; i < 6; i++) entities.push(createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)));
+for (let i = 0; i < 3; i++) entities.push(createCrab(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10)));
 
 function feed() {
   const cx = TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6);

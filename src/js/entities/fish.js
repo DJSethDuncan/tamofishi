@@ -8,6 +8,7 @@ const createFish = (tank, x, y) => {
     color: '#33ff33',
     target: null,
     panic: 0,
+    sex: Math.random() < 0.5 ? 'f' : 'm',
   };
 
   const swimIdle = (dt) => {
@@ -33,6 +34,7 @@ const createFish = (tank, x, y) => {
   };
 
   f.update = (dt, entities) => {
+    if (!f.panic && entities.some(e => e.type === 'crab' && Math.hypot(e.x - f.x, e.y - f.y) < 2)) startPanic(f);
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
     else if (chaseCursor(f, 0.15)) { /* chasing cursor */ }
     else {
@@ -43,6 +45,11 @@ const createFish = (tank, x, y) => {
     if (f.target) chaseFood();
     else swimIdle(dt);
 
+    }
+    // ~once per hour at 60fps: 1/(60*3600) ≈ 4.6e-6
+    if (f.sex === 'f' && Math.random() < 0.0000046) {
+      const count = 1 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < count; i++) entities.push(createFish(tank, f.x + (Math.random() - 0.5) * 2, f.y));
     }
     if (f.x <= tank.x1) { f.x = tank.x1; f.vx = Math.abs(f.vx); }
     if (f.x >= tank.x2) { f.x = tank.x2; f.vx = -Math.abs(f.vx); }
