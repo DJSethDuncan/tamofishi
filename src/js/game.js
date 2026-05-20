@@ -14,8 +14,28 @@ const COLORS = {
 const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
 
 const entities = [];
-for (let i = 0; i < 6; i++) entities.push(createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)));
-for (let i = 0; i < 3; i++) entities.push(createCrab(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10)));
+
+const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex });
+
+const saveState = () => {
+  tank.save(entities.filter(e => e.type !== 'flake').map(serializeEntity));
+};
+
+const loadState = async () => {
+  const data = await tank.load();
+  if (data && data.length) {
+    data.forEach(s => {
+      if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; entities.push(f); }
+      if (s.type === 'crab') { const c = createCrab(TANK, s.x, s.y); c.sex = s.sex; entities.push(c); }
+    });
+  } else {
+    for (let i = 0; i < 6; i++) entities.push(createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)));
+    for (let i = 0; i < 3; i++) entities.push(createCrab(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10)));
+  }
+};
+
+setInterval(saveState, 5000);
+window.addEventListener('beforeunload', saveState);
 
 function feed() {
   const cx = TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6);
@@ -70,6 +90,8 @@ function drawTank() {
   }
 }
 
+loadState().then(() => requestAnimationFrame(loop));
+
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
@@ -84,4 +106,3 @@ function loop(now) {
   entities.filter(e => e.type !== 'flake').forEach(e => e.draw(ctx));
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);

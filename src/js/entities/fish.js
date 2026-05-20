@@ -11,7 +11,25 @@ const createFish = (tank, x, y) => {
     sex: Math.random() < 0.5 ? 'f' : 'm',
   };
 
-  const swimIdle = (dt) => {
+  const SCHOOL_RANGE = 8;
+  const SEPARATION = 3;
+
+  const school = (entities) => {
+    let cx = 0, cy = 0, avgVx = 0, sx = 0, sy = 0, n = 0;
+    for (const e of entities) {
+      if (e === f || e.type !== 'fish') continue;
+      const dx = e.x - f.x, dy = e.y - f.y, d = Math.hypot(dx, dy);
+      if (d >= SCHOOL_RANGE) continue;
+      n++; cx += e.x; cy += e.y; avgVx += e.vx;
+      if (d < SEPARATION && d > 0) { sx -= dx / d * 0.5; sy -= dy / d * 0.5; }
+    }
+    if (!n) return;
+    cx /= n; cy /= n; avgVx /= n;
+    f.vx += (cx - f.x) * 0.0003 + (avgVx - f.vx) * 0.002 + sx * 0.006;
+    f.vy = (f.vy || 0) + (cy - f.y) * 0.0003 + sy * 0.006;
+  };
+
+  const swimIdle = (dt, entities) => {
     f.bobPhase += dt * 0.8;
     if (f.idle > 0) {
       f.idle -= dt;
@@ -21,8 +39,11 @@ const createFish = (tank, x, y) => {
       if (Math.random() < 0.005) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.1);
       if (Math.random() < 0.008) f.idle = 2 + Math.random() * 4;
     }
+    // School ~2/3 of the time
+    if (entities && Math.random() < 0.2) school(entities);
     f.x += f.vx;
-    f.y += Math.sin(f.bobPhase) * 0.03 * Math.min(Math.abs(f.vx) * 10, 1);
+    f.y += Math.sin(f.bobPhase) * 0.03 * Math.min(Math.abs(f.vx) * 10, 1) + (f.vy || 0);
+    f.vy = (f.vy || 0) * 0.9; // decay vertical schooling drift
   };
 
   const chaseFood = () => {
@@ -39,11 +60,11 @@ const createFish = (tank, x, y) => {
     else if (chaseCursor(f, 0.15)) { /* chasing cursor */ }
     else {
     if (f.target && f.target.eaten) f.target = null;
-    if (f.idle > 0) { swimIdle(dt); return; }
+    if (f.idle > 0) { swimIdle(dt, entities); return; }
     if (!f.target) f.target = noticeFlake(f, entities);
 
     if (f.target) chaseFood();
-    else swimIdle(dt);
+    else swimIdle(dt, entities);
 
     }
     // ~once per hour at 60fps: 1/(60*3600) ≈ 4.6e-6
