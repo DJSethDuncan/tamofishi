@@ -16,7 +16,7 @@ ipcMain.handle('save-tank', (_, data) => {
 
 app.whenReady().then(() => {
   const win = new BrowserWindow({
-    width: 960, height: 390, resizable: false,
+    width: 1440, height: 585, resizable: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   win.setMenu(null);

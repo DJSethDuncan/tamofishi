@@ -16,7 +16,8 @@ const createCrab = (tank, x, y) => {
     color: '#2a8a2a',
   };
 
-  const onFloor = () => Math.round(c.y) >= FLOOR;
+  const getFloor = (entities) => entities ? getSurfaceY(c.x, entities, FLOOR) : FLOOR;
+  const onFloor = (entities) => Math.round(c.y) >= Math.round(getFloor(entities));
 
   const findPrey = (entities) => {
     let best = null, bestD = Infinity;
@@ -66,7 +67,7 @@ const createCrab = (tank, x, y) => {
         if (r < 0.01) { c.climbing = false; c.vx = (c.x < (tank.x1 + tank.x2) / 2 ? 1 : -1) * 0.05; c.idle = 0.5; }
         else if (r < 0.04) { c.vy = (Math.random() < 0.6 ? -1 : 1) * (0.03 + Math.random() * 0.05); c.idle = 0.5 + Math.random() * 1.5; }
         else if (r < 0.06) { c.vy = 0; c.idle = 1 + Math.random() * 3; }
-      } else if (onFloor()) {
+      } else if (onFloor(entities)) {
         // Continue strolling
         if (c.strollTo >= 0) {
           const dx = c.strollTo - c.x;
@@ -82,22 +83,24 @@ const createCrab = (tank, x, y) => {
         }
       }
     }
-    if (!onFloor() && !c.climbing) c.vy += GRAVITY * dt * 3;
+    if (!onFloor(entities) && !c.climbing) c.vy += GRAVITY * dt * 3;
     c.x += c.vx;
     c.y += c.vy;
     }
 
     if (Math.abs(c.vx) > 0.005 || c.vy < -0.01) c.walkPhase += dt * 6;
-    if (c.y >= FLOOR) { c.y = FLOOR; c.vy = 0; c.climbing = false; c.vx *= 0.85; if (!c.idle) c.idle = 0.3 + Math.random() * 1.5; }
+    c._surfY = getFloor(entities);
+    const surfY = c._surfY;
+    if (c.y >= surfY) { c.y = surfY; c.vy = 0; c.climbing = false; c.vx *= 0.85; if (!c.idle) c.idle = 0.3 + Math.random() * 1.5; }
     if (c.y <= tank.y1) { c.y = tank.y1; c.vy = Math.abs(c.vy) * 0.3; }
-    if (c.x <= tank.x1) { c.x = tank.x1; if (!c.climbing && onFloor()) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = Math.abs(c.vx); } }
-    if (c.x >= tank.x2) { c.x = tank.x2; if (!c.climbing && onFloor()) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = -Math.abs(c.vx); } }
+    if (c.x <= tank.x1) { c.x = tank.x1; if (!c.climbing && onFloor(entities)) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = Math.abs(c.vx); } }
+    if (c.x >= tank.x2) { c.x = tank.x2; if (!c.climbing && onFloor(entities)) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = -Math.abs(c.vx); } }
   };
 
   c.draw = (ctx) => {
     const rx = Math.round(c.x), ry = Math.round(c.y);
     ctx.fillStyle = c.color;
-    const airborne = !onFloor() && !c.climbing;
+    const airborne = c.y < Math.round(c._surfY || FLOOR) && !c.climbing;
     const walking = Math.abs(c.vx) > 0.005;
     const eyes = () => { ctx.fillStyle = '#33ff33'; ctx.fillRect(rx - 1, bodyY, 1, 1); ctx.fillRect(rx + 1, bodyY, 1, 1); ctx.fillStyle = c.color; };
     let bodyY;

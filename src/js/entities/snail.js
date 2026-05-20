@@ -47,8 +47,20 @@ const createSnail = (tank, x, y) => {
     s.vy = (dy / d) * SPEED;
   };
 
-  const onSurface = () => {
-    return Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2 || Math.round(s.y) >= FLOOR;
+  const findPlantAt = (entities) => {
+    for (const e of entities) {
+      if (e.type !== 'plant') continue;
+      if (Math.abs(Math.round(s.x) - Math.round(e.x)) < 2 && s.y < FLOOR && s.y >= FLOOR - 20) return e;
+    }
+    return null;
+  };
+
+  const onSurface = (entities) => {
+    if (Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2 || Math.round(s.y) >= FLOOR) return true;
+    if (!entities) return false;
+    if (findPlantAt(entities)) return true;
+    const rockY = getSurfaceY(s.x, entities, FLOOR);
+    return Math.round(s.y) >= Math.round(rockY);
   };
 
   s.update = (dt, entities) => {
@@ -56,7 +68,7 @@ const createSnail = (tank, x, y) => {
     checkNudge(s, entities);
     if (s.target && (s.target.eaten || !entities.includes(s.target))) s.target = null;
 
-    if (!onSurface()) {
+    if (!onSurface(entities)) {
       // Falling — gravity only
       s.vy += GRAVITY * dt * 3;
       s.vx *= 0.95;
@@ -69,11 +81,18 @@ const createSnail = (tank, x, y) => {
       chaseFood();
     } else if (s.goalX !== undefined) {
       const onWall = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
-      if (onWall) {
-        // Climbing wall toward goalY
-        const dy = (s.goalY !== undefined ? s.goalY : s.y) - s.y;
-        if (Math.abs(dy) < 0.5) { s.goalX = undefined; s.goalY = undefined; s.vx = 0; s.vy = 0; s.idle = 1 + Math.random() * 3; }
-        else { s.vy = Math.sign(dy) * SPEED; s.vx = 0; }
+      const plant = findPlantAt(entities);
+      if (onWall || plant) {
+        // Climbing wall or plant toward goalY
+        // Fall off plants frequently (~once per 30s at 60fps)
+        if (plant && Math.random() < 0.0006) {
+          s.vx = (Math.random() - 0.5) * 0.04; s.vy = 0;
+          s.goalX = undefined; s.goalY = undefined;
+        } else {
+          const dy = (s.goalY !== undefined ? s.goalY : s.y) - s.y;
+          if (Math.abs(dy) < 0.5) { s.goalX = undefined; s.goalY = undefined; s.vx = 0; s.vy = 0; s.idle = 1 + Math.random() * 3; }
+          else { s.vy = Math.sign(dy) * SPEED; s.vx = 0; }
+        }
       } else {
         // On floor toward goalX
         const dx = s.goalX - s.x;
@@ -81,22 +100,33 @@ const createSnail = (tank, x, y) => {
         else { s.vx = Math.sign(dx) * SPEED; s.vy = 0; }
       }
     } else {
-      // Rare wall detachment
       const onWall = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
+      const plant = findPlantAt(entities);
+      // Detachment: rare on walls, frequent on plants
       if (onWall && Math.random() < 0.00003) {
         s.vx = (s.x < (tank.x1 + tank.x2) / 2 ? 1 : -1) * 0.02;
         s.vy = 0; s.goalX = undefined;
+      } else if (plant && Math.random() < 0.0006) {
+        s.vx = (Math.random() - 0.5) * 0.04; s.vy = 0;
+        s.goalX = undefined; s.goalY = undefined;
       } else {
         s.target = findNearestFlake(s, entities, floorOnly);
         if (!s.target) {
           const r = Math.random();
-          if (r < 0.5) {
-            // Pick a spot on the floor
+          if (r < 0.4) {
             s.goalX = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4);
-          } else if (r < 0.7) {
+          } else if (r < 0.6) {
             // Head to a wall and climb
             s.goalX = Math.random() < 0.5 ? tank.x1 : tank.x2;
             s.goalY = tank.y1 + 2 + Math.random() * (WALL_H - 4);
+          } else if (r < 0.75) {
+            // Climb a nearby plant
+            const plants = entities.filter(e => e.type === 'plant');
+            if (plants.length) {
+              const pl = plants[Math.floor(Math.random() * plants.length)];
+              s.goalX = pl.x;
+              s.goalY = FLOOR - 3 - Math.random() * 10;
+            }
           } else {
             s.idle = 1 + Math.random() * 3;
           }
@@ -112,7 +142,8 @@ const createSnail = (tank, x, y) => {
     s.y += s.vy;
 
     // Land on floor (only trigger once, when actually falling)
-    if (s.y >= FLOOR) { s.y = FLOOR; if (s.vy > 0) { s.vy = 0; s.vx = 0; s.goalX = undefined; s.goalY = undefined; s.idle = 0.5 + Math.random() * 1.5; } s.vy = 0; }
+    const snailFloor = getSurfaceY(s.x, entities, FLOOR);
+    if (s.y >= snailFloor) { s.y = snailFloor; if (s.vy > 0) { s.vy = 0; s.vx = 0; s.goalX = undefined; s.goalY = undefined; s.idle = 0.5 + Math.random() * 1.5; } s.vy = 0; }
     // Hit top of wall — detach and fall
     const onWallNow = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
     if (onWallNow && s.y <= tank.y1) {

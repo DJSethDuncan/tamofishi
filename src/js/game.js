@@ -1,4 +1,4 @@
-const W = 120, H = 40;
+const W = 180, H = 60;
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 canvas.width = W;
@@ -15,7 +15,7 @@ const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
 
 const entities = [];
 
-const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age });
+const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size });
 
 const saveState = () => {
   tank.save(entities.filter(e => e.type !== 'flake').map(serializeEntity));
@@ -28,6 +28,9 @@ const loadState = async () => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
       if (s.type === 'crab') { const c = createCrab(TANK, s.x, s.y); c.sex = s.sex; entities.push(c); }
       if (s.type === 'snail') { const n = createSnail(TANK, s.x, s.y); n.sex = s.sex; entities.push(n); }
+      if (s.type === 'turtle') { const tt = createTurtle(TANK, s.x, s.y); tt.sex = s.sex; entities.push(tt); }
+      if (s.type === 'plant') entities.push(createPlant(TANK, s.x, s.size));
+      if (s.type === 'rock') entities.push(createRock(TANK, s.x, s.size));
     });
   } else {
     for (let i = 0; i < 6; i++) { const f = createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)); f.age = 3600; entities.push(f); }
@@ -49,6 +52,13 @@ const SPAWNERS = {
   fish: () => { const f = createFish(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1); f.age = 3600; return f; },
   crab: () => createCrab(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
   snail: () => createSnail(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+  turtle: () => createTurtle(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+  'plant-short': () => createPlant(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'short'),
+  'plant-medium': () => createPlant(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'medium'),
+  'plant-tall': () => createPlant(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'tall'),
+  'rock-short': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'short'),
+  'rock-medium': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'medium'),
+  'rock-tall': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'tall'),
 };
 
 const selector = document.getElementById('selector');
@@ -58,30 +68,36 @@ const canvasToTank = (e) => {
   return { x: (e.clientX - rect.left) / rect.width * W, y: (e.clientY - rect.top) / rect.height * H };
 };
 
-let draggedSnail = null;
+let dragged = null;
 
 canvas.addEventListener('mousemove', (e) => {
   const p = canvasToTank(e);
   cursor.x = p.x; cursor.y = p.y;
-  if (draggedSnail) {
-    draggedSnail.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
-    draggedSnail.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
+  if (dragged) {
+    dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
+    if (dragged.type !== 'plant' && dragged.type !== 'rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
   }
 });
-canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; draggedSnail = null; });
+canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; if (dragged) { dragged.dragged = false; dragged = null; } });
 
 canvas.addEventListener('mousedown', (e) => {
   const { x: tx, y: ty } = canvasToTank(e);
-  const snailHit = entities.find(ent => ent.type === 'snail' && Math.hypot(ent.x - tx, ent.y - ty) < 3);
-  if (snailHit) {
-    draggedSnail = snailHit;
-    snailHit.dragged = true;
-    snailHit.vx = 0; snailHit.vy = 0; snailHit.target = null; snailHit.goalX = undefined; snailHit.goalY = undefined;
+  const hit = entities.find(ent =>
+    (ent.type === 'snail' || ent.type === 'plant' || ent.type === 'rock') && Math.hypot(ent.x - tx, ent.y - ty) < 3
+  );
+  if (hit) {
+    dragged = hit;
+    hit.dragged = true;
+    if (hit.type === 'snail') { hit.vx = 0; hit.vy = 0; hit.target = null; hit.goalX = undefined; hit.goalY = undefined; }
   }
 });
 
 canvas.addEventListener('mouseup', () => {
-  if (draggedSnail) { draggedSnail.dragged = false; draggedSnail.idle = 2 + Math.random() * 4; draggedSnail = null; }
+  if (dragged) {
+    dragged.dragged = false;
+    if (dragged.type === 'snail') dragged.idle = 2 + Math.random() * 4;
+    dragged = null;
+  }
 });
 
 canvas.addEventListener('click', (e) => {
@@ -92,6 +108,11 @@ canvas.addEventListener('click', (e) => {
 });
 
 document.getElementById('add').addEventListener('click', () => selector.classList.toggle('hidden'));
+document.getElementById('clear').addEventListener('click', () => {
+  for (let i = entities.length - 1; i >= 0; i--) {
+    if (entities[i].type !== 'flake') entities.splice(i, 1);
+  }
+});
 selector.addEventListener('click', (e) => {
   const type = e.target.dataset.type;
   if (type && SPAWNERS[type]) { entities.push(SPAWNERS[type]()); selector.classList.add('hidden'); }
@@ -105,8 +126,17 @@ function drawTank() {
   for (let x = 1; x <= W - 2; x++) { ctx.fillRect(x, 1, 1, 1); ctx.fillRect(x, H - 4, 1, 1); }
   for (let y = 1; y <= H - 4; y++) { ctx.fillRect(1, y, 1, 1); ctx.fillRect(W - 2, y, 1, 1); }
 
-  ctx.fillStyle = COLORS.water;
-  ctx.fillRect(TANK.x1, TANK.y1, TANK.x2 - TANK.x1 + 1, TANK.y2 - TANK.y1 + 1);
+  // Water gradient: green at top, dark at bottom
+  const tankW = TANK.x2 - TANK.x1 + 1;
+  const tankH = TANK.y2 - TANK.y1 + 1;
+  for (let row = 0; row < tankH; row++) {
+    const t = row / (tankH - 1);
+    const r = Math.round(11 * (1 - t * 0.7));
+    const g = Math.round(43 * (1 - t * 0.7));
+    const b = Math.round(11 * (1 - t * 0.7));
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(TANK.x1, TANK.y1 + row, tankW, 1);
+  }
 
   ctx.fillStyle = COLORS.sand;
   for (let x = TANK.x1; x <= TANK.x2; x++) {
@@ -127,7 +157,9 @@ function loop(now) {
     if (entities[i].eaten) entities.splice(i, 1);
   }
   drawTank();
+  entities.filter(e => e.type === 'rock').forEach(e => e.draw(ctx));
+  entities.filter(e => e.type === 'plant').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'flake').forEach(e => e.draw(ctx));
-  entities.filter(e => e.type !== 'flake').forEach(e => e.draw(ctx));
+  entities.filter(e => e.type !== 'flake' && e.type !== 'plant' && e.type !== 'rock').forEach(e => e.draw(ctx));
   requestAnimationFrame(loop);
 }
