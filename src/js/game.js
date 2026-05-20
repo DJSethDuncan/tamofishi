@@ -27,6 +27,7 @@ const loadState = async () => {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; entities.push(f); }
       if (s.type === 'crab') { const c = createCrab(TANK, s.x, s.y); c.sex = s.sex; entities.push(c); }
+      if (s.type === 'snail') { const n = createSnail(TANK, s.x, s.y); n.sex = s.sex; entities.push(n); }
     });
   } else {
     for (let i = 0; i < 6; i++) entities.push(createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)));
@@ -37,8 +38,8 @@ const loadState = async () => {
 setInterval(saveState, 5000);
 window.addEventListener('beforeunload', saveState);
 
-function feed() {
-  const cx = TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6);
+function feedAt(cx) {
+  cx = Math.max(TANK.x1 + 2, Math.min(TANK.x2 - 2, cx));
   for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
     entities.push(createFlake(TANK, cx + (Math.random() - 0.5) * 4));
   }
@@ -47,6 +48,7 @@ function feed() {
 const SPAWNERS = {
   fish: () => createFish(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
   crab: () => createCrab(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+  snail: () => createSnail(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
 };
 
 const selector = document.getElementById('selector');
@@ -56,16 +58,39 @@ const canvasToTank = (e) => {
   return { x: (e.clientX - rect.left) / rect.width * W, y: (e.clientY - rect.top) / rect.height * H };
 };
 
-canvas.addEventListener('mousemove', (e) => { const p = canvasToTank(e); cursor.x = p.x; cursor.y = p.y; });
-canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; });
+let draggedSnail = null;
+
+canvas.addEventListener('mousemove', (e) => {
+  const p = canvasToTank(e);
+  cursor.x = p.x; cursor.y = p.y;
+  if (draggedSnail) {
+    draggedSnail.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
+    draggedSnail.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
+  }
+});
+canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; draggedSnail = null; });
+
+canvas.addEventListener('mousedown', (e) => {
+  const { x: tx, y: ty } = canvasToTank(e);
+  const snailHit = entities.find(ent => ent.type === 'snail' && Math.hypot(ent.x - tx, ent.y - ty) < 3);
+  if (snailHit) {
+    draggedSnail = snailHit;
+    snailHit.dragged = true;
+    snailHit.vx = 0; snailHit.vy = 0; snailHit.target = null; snailHit.goalD = -1;
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  if (draggedSnail) { draggedSnail.dragged = false; draggedSnail.idle = 2 + Math.random() * 4; draggedSnail = null; }
+});
 
 canvas.addEventListener('click', (e) => {
   const { x: tx, y: ty } = canvasToTank(e);
+  if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
   const hit = entities.find(ent => ent.panic !== undefined && Math.hypot(ent.x - tx, ent.y - ty) < 3);
   if (hit) startPanic(hit);
 });
 
-document.getElementById('feed').addEventListener('click', feed);
 document.getElementById('add').addEventListener('click', () => selector.classList.toggle('hidden'));
 selector.addEventListener('click', (e) => {
   const type = e.target.dataset.type;

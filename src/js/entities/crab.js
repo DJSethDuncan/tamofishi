@@ -11,6 +11,7 @@ const createCrab = (tank, x, y) => {
     strollTo: -1,
     target: null,
     panic: 0,
+    walkPhase: 0,
     sex: Math.random() < 0.5 ? 'f' : 'm',
     color: '#2a8a2a',
   };
@@ -81,6 +82,7 @@ const createCrab = (tank, x, y) => {
     c.y += c.vy;
     }
 
+    if (Math.abs(c.vx) > 0.005) c.walkPhase += dt * 6;
     if (c.y >= FLOOR) { c.y = FLOOR; c.vy = 0; c.climbing = false; c.vx *= 0.85; if (!c.idle) c.idle = 0.3 + Math.random() * 1.5; }
     if (c.y <= tank.y1) { c.y = tank.y1; c.vy = Math.abs(c.vy) * 0.3; }
     if (c.x <= tank.x1) { c.x = tank.x1; if (!c.climbing && onFloor()) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = Math.abs(c.vx); } }
@@ -91,7 +93,13 @@ const createCrab = (tank, x, y) => {
     const rx = Math.round(c.x), ry = Math.round(c.y);
     ctx.fillStyle = c.color;
     if (c.climbing) ctx.fillRect(rx, ry - 1, 1, 3);
-    else ctx.fillRect(rx - 1, ry, 3, 1);
+    else {
+      ctx.fillRect(rx - 1, ry, 3, 1);
+      if (Math.abs(c.vx) > 0.005) {
+        const out = Math.floor(c.walkPhase) % 2 === 0 ? 0 : 1;
+        ctx.fillRect(rx - 1 - out, ry + 1, 1, 1); ctx.fillRect(rx + 1 + out, ry + 1, 1, 1);
+      }
+    }
   };
 
   return c;
