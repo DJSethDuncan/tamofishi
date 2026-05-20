@@ -7,6 +7,7 @@ const createFish = (tank, x, y) => {
     idle: 0,
     color: '#33ff33',
     target: null,
+    panic: 0,
   };
 
   const swimIdle = (dt) => {
@@ -32,6 +33,9 @@ const createFish = (tank, x, y) => {
   };
 
   f.update = (dt, entities) => {
+    if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
+    else if (chaseCursor(f, 0.15)) { /* chasing cursor */ }
+    else {
     if (f.target && f.target.eaten) f.target = null;
     if (f.idle > 0) { swimIdle(dt); return; }
     if (!f.target) f.target = noticeFlake(f, entities);
@@ -39,6 +43,7 @@ const createFish = (tank, x, y) => {
     if (f.target) chaseFood();
     else swimIdle(dt);
 
+    }
     if (f.x <= tank.x1) { f.x = tank.x1; f.vx = Math.abs(f.vx); }
     if (f.x >= tank.x2) { f.x = tank.x2; f.vx = -Math.abs(f.vx); }
     if (f.y <= tank.y1) f.y = tank.y1;

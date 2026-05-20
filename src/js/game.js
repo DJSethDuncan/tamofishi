@@ -25,7 +25,33 @@ function feed() {
   }
 }
 
+const SPAWNERS = {
+  fish: () => createFish(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+  crab: () => createCrab(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+};
+
+const selector = document.getElementById('selector');
+
+const canvasToTank = (e) => {
+  const rect = canvas.getBoundingClientRect();
+  return { x: (e.clientX - rect.left) / rect.width * W, y: (e.clientY - rect.top) / rect.height * H };
+};
+
+canvas.addEventListener('mousemove', (e) => { const p = canvasToTank(e); cursor.x = p.x; cursor.y = p.y; });
+canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; });
+
+canvas.addEventListener('click', (e) => {
+  const { x: tx, y: ty } = canvasToTank(e);
+  const hit = entities.find(ent => ent.panic !== undefined && Math.hypot(ent.x - tx, ent.y - ty) < 3);
+  if (hit) startPanic(hit);
+});
+
 document.getElementById('feed').addEventListener('click', feed);
+document.getElementById('add').addEventListener('click', () => selector.classList.toggle('hidden'));
+selector.addEventListener('click', (e) => {
+  const type = e.target.dataset.type;
+  if (type && SPAWNERS[type]) { entities.push(SPAWNERS[type]()); selector.classList.add('hidden'); }
+});
 
 function drawTank() {
   ctx.fillStyle = COLORS.bg;
@@ -55,7 +81,8 @@ function loop(now) {
     if (entities[i].eaten) entities.splice(i, 1);
   }
   drawTank();
-  entities.forEach(e => e.draw(ctx));
+  entities.filter(e => e.type === 'flake').forEach(e => e.draw(ctx));
+  entities.filter(e => e.type !== 'flake').forEach(e => e.draw(ctx));
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

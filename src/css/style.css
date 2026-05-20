@@ -1,9 +1,17 @@
 html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
 canvas { display: block; image-rendering: pixelated; width: 100%; flex: 1; min-height: 0; }
-#feed {
+
+.btn {
   background: #0d3d0d; color: #33ff33; border: 1px solid #1a5a1a;
   font-family: monospace; font-size: 14px; padding: 6px 0;
-  cursor: pointer; width: 100%;
+  cursor: pointer; flex: 1;
 }
-#feed:hover { background: #1a5a1a; }
-#feed:active { background: #33ff33; color: #0a1a0a; }
+.btn:hover { background: #1a5a1a; }
+.btn:active { background: #33ff33; color: #0a1a0a; }
+
+#controls { display: flex; }
+#controls button { flex: 1; }
+
+#selector { display: flex; }
+#selector button { flex: 1; }
+#selector.hidden { display: none; }

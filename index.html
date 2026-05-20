@@ -6,7 +6,16 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<button id="feed">FEED</button>
+<div id="controls">
+  <button id="feed" class="btn">FEED</button>
+  <button id="add" class="btn">ADD</button>
+</div>
+<div id="selector" class="hidden">
+  <button class="btn" data-type="fish">FISH</button>
+  <button class="btn" data-type="crab">CRAB</button>
+</div>
+<script src="src/js/behaviors/cursor.js"></script>
+<script src="src/js/behaviors/panic.js"></script>
 <script src="src/js/behaviors/feeding.js"></script>
 <script src="src/js/entities/crab.js"></script>
 <script src="src/js/entities/flake.js"></script>
