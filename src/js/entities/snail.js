@@ -59,7 +59,7 @@ const createSnail = (tank, x, y) => {
     if (Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2 || Math.round(s.y) >= FLOOR) return true;
     if (!entities) return false;
     if (findPlantAt(entities)) return true;
-    const rockY = getSurfaceY(s.x, entities, FLOOR);
+    const rockY = getSurfaceY(s.x, s.y, entities, FLOOR);
     return Math.round(s.y) >= Math.round(rockY);
   };
 
@@ -142,7 +142,7 @@ const createSnail = (tank, x, y) => {
     s.y += s.vy;
 
     // Land on floor (only trigger once, when actually falling)
-    const snailFloor = getSurfaceY(s.x, entities, FLOOR);
+    const snailFloor = getSurfaceY(s.x, s.y, entities, FLOOR);
     if (s.y >= snailFloor) { s.y = snailFloor; if (s.vy > 0) { s.vy = 0; s.vx = 0; s.goalX = undefined; s.goalY = undefined; s.idle = 0.5 + Math.random() * 1.5; } s.vy = 0; }
     // Hit top of wall — detach and fall
     const onWallNow = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;

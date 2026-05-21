@@ -2,7 +2,7 @@ const createTurtle = (tank, x, y) => {
   const GRAVITY = 0.08;
   const FLOOR = tank.y2;
   const floorOnly = (e) => Math.round(e.y) >= FLOOR;
-  const getFloorT = (entities) => entities ? getSurfaceY(t.x, entities, FLOOR) : FLOOR;
+  const getFloorT = (entities) => entities ? getSurfaceY(t.x, t.y, entities, FLOOR) : FLOOR;
   const onFloorT = (entities) => Math.round(t.y) >= Math.round(getFloorT(entities));
   const t = {
     type: 'turtle',
@@ -35,13 +35,13 @@ const createTurtle = (tank, x, y) => {
     const dx = t.target.x - t.x, dy = t.target.y - t.y;
     const d = Math.hypot(dx, dy);
     if (d < EAT_DIST) { entities.splice(entities.indexOf(t.target), 1); t.target = null; t.idle = FEED_COOLDOWN; t.vx = 0; return; }
-    t.vx = (dx / d) * 0.2;
-    t.vy = (dy / d) * 0.2;
+    t.vx = (dx / d) * 0.07;
+    t.vy = (dy / d) * 0.07;
   };
 
   const chaseFood = () => {
     if (tryEat(t)) { t.vx = 0; return; }
-    t.vx = Math.sign(t.target.x - t.x) * 0.15;
+    t.vx = Math.sign(t.target.x - t.x) * 0.05;
   };
 
   t.update = (dt, entities) => {
@@ -72,13 +72,13 @@ const createTurtle = (tank, x, y) => {
         if (t.strollTo >= 0) {
           const dx = t.strollTo - t.x;
           if (Math.abs(dx) < 1) { t.strollTo = -1; t.vx = 0; t.idle = 0.3 + Math.random() * 1; }
-          else t.vx = Math.sign(dx) * 0.08;
+          else t.vx = Math.sign(dx) * 0.03;
         } else {
           const r = Math.random();
           if (r < 0.003) { startPanic(t); }
-          else if (r < 0.015) { t.vy = -(0.12 + Math.random() * 0.1); t.vx = (Math.random() - 0.5) * 0.15; }
+          else if (r < 0.015) { t.vy = -(0.08 + Math.random() * 0.05); t.vx = (Math.random() - 0.5) * 0.05; }
           else if (r < 0.12) { t.strollTo = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4); }
-          else if (r < 0.4) { t.vx = (Math.random() < 0.5 ? -1 : 1) * (0.1 + Math.random() * 0.12); t.idle = 0.1 + Math.random() * 0.3; }
+          else if (r < 0.4) { t.vx = (Math.random() < 0.5 ? -1 : 1) * (0.03 + Math.random() * 0.04); t.idle = 0.1 + Math.random() * 0.3; }
           else { t.idle = 0.5 + Math.random() * 1.5; }
         }
       }
@@ -89,6 +89,23 @@ const createTurtle = (tank, x, y) => {
     }
 
     if (Math.abs(t.vx) > 0.005 || t.vy < -0.01) t.walkPhase += dt * 4;
+    if (!t.climbing && Math.abs(t.vx) > 0.001) {
+      const aheadX = t.x + Math.sign(t.vx) * 1.5;
+      const aheadSurf = getSurfaceY(aheadX, t.y, entities, FLOOR);
+      const curSurf = getSurfaceY(t.x, t.y, entities, FLOOR);
+      const diff = curSurf - aheadSurf;
+      if (diff > 1 && Math.round(t.y) >= Math.round(curSurf)) {
+        t.vy = -0.04; t.vx = 0; t.climbing = true; t.idle = 0;
+      }
+      if (diff < -1 && Math.round(t.y) < FLOOR - 1) {
+        t.vy = 0.04; t.vx = 0; t.climbing = true; t.idle = 0;
+      }
+    }
+    if (t.climbing) {
+      const climbSurf = getSurfaceY(t.x, t.y, entities, FLOOR);
+      if (t.vy > 0 && t.y >= climbSurf) { t.y = climbSurf; t.vy = 0; t.climbing = false; t.idle = 0.3 + Math.random() * 1; }
+      if (t.vy < 0 && t.y <= getSurfaceY(t.x, -Infinity, entities, FLOOR)) { t.y = getSurfaceY(t.x, -Infinity, entities, FLOOR); t.vy = 0; t.climbing = false; t.idle = 0.3 + Math.random() * 1; }
+    }
     const surfYT = getFloorT(entities);
     t._surfY = surfYT;
     if (t.y >= surfYT) { t.y = surfYT; t.vy = 0; t.climbing = false; t.vx *= 0.85; if (!t.idle) t.idle = 0.3 + Math.random() * 1.5; }
@@ -104,22 +121,26 @@ const createTurtle = (tank, x, y) => {
     ctx.fillStyle = t.color;
     if (t.climbing) {
       ctx.fillRect(rx, ry - 1, 1, 3);
+    } else if (moving) {
+      // Moving: raised up 1 so feet sit at baseline (ry)
+      const sx = dir > 0 ? rx - 2 : rx;
+      ctx.fillRect(sx, ry - 2, 3, 1);
+      ctx.fillRect(sx, ry - 1, 3, 1);
+      // Head
+      ctx.fillStyle = '#33ff33';
+      ctx.fillRect(sx + (dir > 0 ? 3 : -1), ry - 1, 1, 1);
+      // Tail
+      ctx.fillStyle = t.color;
+      ctx.fillRect(sx + (dir > 0 ? -1 : 3), ry - 1, 1, 1);
+      // Feet at baseline
+      const out = Math.floor(t.walkPhase) % 2 === 0 ? 0 : 1;
+      ctx.fillRect(sx + out, ry, 1, 1);
+      ctx.fillRect(sx + 2 - out, ry, 1, 1);
     } else {
-      // Shell trails behind: dir=1 (facing right) shell at rx-2..rx
-      // dir=-1 (facing left) shell at rx..rx+2
+      // Stationary: shell 3x2 on ground, extra pixel each side on bottom row
       const sx = dir > 0 ? rx - 2 : rx;
       ctx.fillRect(sx, ry - 1, 3, 1);
-      ctx.fillRect(sx, ry, 3, 1);
-      if (moving) {
-        // Head: bright green, extends in front of shell
-        ctx.fillStyle = '#33ff33';
-        ctx.fillRect(sx + (dir > 0 ? 3 : -1), ry, 1, 1);
-        ctx.fillStyle = t.color;
-        // Feet
-        const out = Math.floor(t.walkPhase) % 2 === 0 ? 0 : 1;
-        ctx.fillRect(sx + out, ry + 1, 1, 1);
-        ctx.fillRect(sx + 2 - out, ry + 1, 1, 1);
-      }
+      ctx.fillRect(sx - 1, ry, 5, 1);
     }
   };
 

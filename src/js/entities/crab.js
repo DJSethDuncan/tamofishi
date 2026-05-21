@@ -16,13 +16,13 @@ const createCrab = (tank, x, y) => {
     color: '#2a8a2a',
   };
 
-  const getFloor = (entities) => entities ? getSurfaceY(c.x, entities, FLOOR) : FLOOR;
+  const getFloor = (entities) => entities ? getSurfaceY(c.x, c.y, entities, FLOOR) : FLOOR;
   const onFloor = (entities) => Math.round(c.y) >= Math.round(getFloor(entities));
 
   const findPrey = (entities) => {
     let best = null, bestD = Infinity;
     for (const e of entities) {
-      if (e.type !== 'fish' || e.eaten) continue;
+      if ((e.type !== 'fish' && e.type !== 'shrimp') || e.eaten) continue;
       const d = Math.hypot(e.x - c.x, e.y - c.y);
       if (d < 5 && Math.random() < 0.5 / (d + 1) && d < bestD) { best = e; bestD = d; }
     }
@@ -48,15 +48,16 @@ const createCrab = (tank, x, y) => {
       if (r < 0.2) startPanic(c);
       else if (r < 0.7) { c.vy = -(0.15 + Math.random() * 0.1); c.vx = (Math.random() - 0.5) * 0.15; }
     }
+    if (!c.panic && entities.some(e => e.type === 'turtle' && Math.hypot(e.x - c.x, e.y - c.y) < 4)) startPanic(c);
     if (updatePanic(c, dt)) { c.x += c.vx; c.y += c.vy; }
     else if (chaseCursor(c, 0.15)) { if (c.climbing) c.climbing = false; }
     else {
-    if (c.target && (c.target.eaten || !entities.includes(c.target) || (c.target.type === 'fish' && Math.hypot(c.target.x - c.x, c.target.y - c.y) >= FEED_RANGE))) c.target = null;
+    if (c.target && (c.target.eaten || !entities.includes(c.target) || ((c.target.type === 'fish' || c.target.type === 'shrimp') && Math.hypot(c.target.x - c.x, c.target.y - c.y) >= FEED_RANGE))) c.target = null;
     if (c.idle > 0) { c.idle -= dt; if (!c.climbing) c.vx *= 0.9; }
 
     if (c.idle <= 0) {
       if (!c.target) c.target = findPrey(entities) || findNearestFlake(c, entities, floorOnly);
-      if (c.target && c.target.type === 'fish') {
+      if (c.target && (c.target.type === 'fish' || c.target.type === 'shrimp')) {
         c.strollTo = -1; if (c.climbing) { c.climbing = false; c.vx = 0; }
         chasePrey(entities);
       } else if (c.target) {
@@ -89,6 +90,27 @@ const createCrab = (tank, x, y) => {
     }
 
     if (Math.abs(c.vx) > 0.005 || c.vy < -0.01) c.walkPhase += dt * 6;
+    // Rock face climbing: check surface ahead vs current
+    if (!c.climbing && Math.abs(c.vx) > 0.001) {
+      const aheadX = c.x + Math.sign(c.vx) * 1.5;
+      const aheadSurf = getSurfaceY(aheadX, c.y, entities, FLOOR);
+      const curSurf = getSurfaceY(c.x, c.y, entities, FLOOR);
+      const diff = curSurf - aheadSurf;
+      // Walking into a rock face (surface ahead is higher)
+      if (diff > 1 && Math.round(c.y) >= Math.round(curSurf)) {
+        c.vy = -0.04; c.vx = 0; c.climbing = true; c.idle = 0;
+      }
+      // Walking off a rock edge (surface ahead is lower) — climb down
+      if (diff < -1 && Math.round(c.y) < FLOOR - 1) {
+        c.vy = 0.04; c.vx = 0; c.climbing = true; c.idle = 0;
+      }
+    }
+    // Stop climbing when reaching a surface
+    if (c.climbing) {
+      const climbSurf = getSurfaceY(c.x, c.y, entities, FLOOR);
+      if (c.vy > 0 && c.y >= climbSurf) { c.y = climbSurf; c.vy = 0; c.climbing = false; c.idle = 0.3 + Math.random() * 1; }
+      if (c.vy < 0 && c.y <= getSurfaceY(c.x, -Infinity, entities, FLOOR)) { c.y = getSurfaceY(c.x, -Infinity, entities, FLOOR); c.vy = 0; c.climbing = false; c.idle = 0.3 + Math.random() * 1; }
+    }
     c._surfY = getFloor(entities);
     const surfY = c._surfY;
     if (c.y >= surfY) { c.y = surfY; c.vy = 0; c.climbing = false; c.vx *= 0.85; if (!c.idle) c.idle = 0.3 + Math.random() * 1.5; }

@@ -12,22 +12,22 @@ const createFish = (tank, x, y) => {
     sex: Math.random() < 0.5 ? 'f' : 'm',
   };
 
-  const SCHOOL_RANGE = 8;
-  const SEPARATION = 3;
+  const SCHOOL_RANGE = 10;
+  const SEPARATION = 5;
 
   const school = (entities) => {
-    let cx = 0, cy = 0, avgVx = 0, sx = 0, sy = 0, n = 0;
+    let cx = 0, cy = 0, avgVx = 0, avgVy = 0, sx = 0, sy = 0, n = 0;
     for (const e of entities) {
       if (e === f || e.type !== 'fish') continue;
       const dx = e.x - f.x, dy = e.y - f.y, d = Math.hypot(dx, dy);
       if (d >= SCHOOL_RANGE) continue;
-      n++; cx += e.x; cy += e.y; avgVx += e.vx;
-      if (d < SEPARATION && d > 0) { sx -= dx / d * 0.5; sy -= dy / d * 0.5; }
+      n++; cx += e.x; cy += e.y; avgVx += e.vx; avgVy += (e.vy || 0);
+      if (d < SEPARATION && d > 0) { const repel = 1 - d / SEPARATION; sx -= (dx / d) * repel; sy -= (dy / d) * repel; }
     }
     if (!n) return;
-    cx /= n; cy /= n; avgVx /= n;
-    f.vx += (cx - f.x) * 0.0003 + (avgVx - f.vx) * 0.002 + sx * 0.006;
-    f.vy = (f.vy || 0) + (cy - f.y) * 0.0003 + sy * 0.006;
+    cx /= n; cy /= n; avgVx /= n; avgVy /= n;
+    f.vx += (cx - f.x) * 0.0008 + (avgVx - f.vx) * 0.008 + sx * 0.012;
+    f.vy = (f.vy || 0) + (cy - f.y) * 0.0008 + (avgVy - (f.vy || 0)) * 0.008 + sy * 0.012;
   };
 
   const swimIdle = (dt, entities) => {
@@ -37,14 +37,13 @@ const createFish = (tank, x, y) => {
       f.vx *= 0.98;
       if (f.idle <= 0) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.1);
     } else {
-      if (Math.random() < 0.005) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.1);
-      if (Math.random() < 0.008) f.idle = 2 + Math.random() * 4;
+      if (Math.random() < 0.003) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.1);
+      if (Math.random() < 0.004) f.idle = 0.5 + Math.random() * 2;
     }
-    // School ~2/3 of the time
-    if (entities && Math.random() < 0.2) school(entities);
+    if (entities) school(entities);
     f.x += f.vx;
     f.y += Math.sin(f.bobPhase) * 0.03 * Math.min(Math.abs(f.vx) * 10, 1) + (f.vy || 0);
-    f.vy = (f.vy || 0) * 0.9; // decay vertical schooling drift
+    f.vy = (f.vy || 0) * 0.93;
   };
 
   const chaseFood = () => {
@@ -62,11 +61,28 @@ const createFish = (tank, x, y) => {
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
     else if (chaseCursor(f, 0.15)) { /* chasing cursor */ }
     else {
-    if (f.target && f.target.eaten) f.target = null;
+    if (f.target && (f.target.eaten || !entities.includes(f.target))) f.target = null;
     if (f.idle > 0) { swimIdle(dt, entities); return; }
+    // Adult fish hunt shrimp
+    if (!f.target && f.age >= 3600) {
+      for (const e of entities) {
+        if (e.type !== 'shrimp') continue;
+        if (entities.some(p => p.type === 'plant' && Math.abs(Math.round(e.x) - Math.round(p.x)) < 2 && e.y < tank.y2)) continue;
+        const d = Math.hypot(e.x - f.x, e.y - f.y);
+        if (d < 6 && Math.random() < 0.3 / (d + 1)) { f.target = e; break; }
+      }
+    }
     if (!f.target) f.target = noticeFlake(f, entities);
 
-    if (f.target) chaseFood();
+    if (f.target && f.target.type === 'shrimp') {
+      const s = f.target;
+      if (entities.some(p => p.type === 'plant' && Math.abs(Math.round(s.x) - Math.round(p.x)) < 2 && s.y < tank.y2)) { f.target = null; }
+      else {
+      const dx = s.x - f.x, dy = s.y - f.y, d = Math.hypot(dx, dy);
+      if (d < EAT_DIST) { entities.splice(entities.indexOf(s), 1); f.target = null; f.idle = FEED_COOLDOWN; }
+      else { f.x += (dx / d) * 0.18; f.y += (dy / d) * 0.18; }
+      }
+    } else if (f.target) chaseFood();
     else swimIdle(dt, entities);
 
     }

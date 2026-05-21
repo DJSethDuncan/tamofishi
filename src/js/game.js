@@ -27,6 +27,7 @@ const loadState = async () => {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
       if (s.type === 'crab') { const c = createCrab(TANK, s.x, s.y); c.sex = s.sex; entities.push(c); }
+      if (s.type === 'shrimp') { const sp = createShrimp(TANK, s.x, s.y); sp.sex = s.sex; entities.push(sp); }
       if (s.type === 'snail') { const n = createSnail(TANK, s.x, s.y); n.sex = s.sex; entities.push(n); }
       if (s.type === 'turtle') { const tt = createTurtle(TANK, s.x, s.y); tt.sex = s.sex; entities.push(tt); }
       if (s.type === 'plant') entities.push(createPlant(TANK, s.x, s.size));
@@ -51,6 +52,7 @@ function feedAt(cx) {
 const SPAWNERS = {
   fish: () => { const f = createFish(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1); f.age = 3600; return f; },
   crab: () => createCrab(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
+  shrimp: () => createShrimp(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
   snail: () => createSnail(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
   turtle: () => createTurtle(TANK, TANK.x1 + Math.random() * (TANK.x2 - TANK.x1), TANK.y1),
   'plant-short': () => createPlant(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'short'),
@@ -107,15 +109,41 @@ canvas.addEventListener('click', (e) => {
   if (hit) startPanic(hit);
 });
 
-document.getElementById('add').addEventListener('click', () => selector.classList.toggle('hidden'));
+const sizer = document.getElementById('sizer');
+let pendingSizeType = null;
+
+document.getElementById('add').addEventListener('click', () => {
+  selector.classList.toggle('hidden');
+  sizer.classList.add('hidden');
+  pendingSizeType = null;
+});
 document.getElementById('clear').addEventListener('click', () => {
+  if (!confirm('Clear all animals and decorations?')) return;
   for (let i = entities.length - 1; i >= 0; i--) {
     if (entities[i].type !== 'flake') entities.splice(i, 1);
   }
 });
 selector.addEventListener('click', (e) => {
   const type = e.target.dataset.type;
-  if (type && SPAWNERS[type]) { entities.push(SPAWNERS[type]()); selector.classList.add('hidden'); }
+  const sizes = e.target.dataset.sizes;
+  if (type && SPAWNERS[type]) {
+    entities.push(SPAWNERS[type]());
+    selector.classList.add('hidden');
+    sizer.classList.add('hidden');
+  } else if (sizes) {
+    pendingSizeType = sizes;
+    sizer.classList.remove('hidden');
+  }
+});
+sizer.addEventListener('click', (e) => {
+  const size = e.target.dataset.size;
+  if (size && pendingSizeType) {
+    const key = pendingSizeType + '-' + size;
+    if (SPAWNERS[key]) entities.push(SPAWNERS[key]());
+    selector.classList.add('hidden');
+    sizer.classList.add('hidden');
+    pendingSizeType = null;
+  }
 });
 
 function drawTank() {
@@ -144,6 +172,23 @@ function drawTank() {
     if (Math.sin(x * 1.7) > 0.3) ctx.fillRect(x, TANK.y2 - 1, 1, 1);
   }
 }
+
+// Draw selector icons
+const ICONS = {
+  fish: (c) => { c.fillStyle='#2a8a2a'; c.fillRect(1,3,3,1); c.fillRect(1,4,1,1); c.fillStyle='#33ff33'; c.fillRect(3,3,1,1); },
+  crab: (c) => { c.fillStyle='#2a8a2a'; c.fillRect(1,3,3,1); c.fillStyle='#33ff33'; c.fillRect(1,3,1,1); c.fillRect(3,3,1,1); },
+  snail: (c) => { c.fillStyle='#2a6a2a'; c.fillRect(2,2,2,2); c.fillStyle='#33ff33'; c.fillRect(4,3,1,1); },
+  turtle: (c) => { c.fillStyle='#1a5a1a'; c.fillRect(1,2,3,1); c.fillRect(0,3,5,1); },
+  shrimp: (c) => { c.fillStyle='#1a6a3a'; c.fillRect(2,3,1,1); c.fillRect(3,3,1,1); c.fillRect(2,4,1,1); },
+  plant: (c) => { c.fillStyle='#1e5a1e'; c.fillRect(2,1,1,4); c.fillRect(3,2,1,3); },
+  rock: (c) => { c.fillStyle='#1a4a1a'; c.fillRect(1,4,3,1); c.fillRect(1,3,2,1); c.fillRect(2,2,1,1); },
+};
+document.querySelectorAll('.icon').forEach(el => {
+  el.width = 6; el.height = 6;
+  const ic = el.getContext('2d');
+  const draw = ICONS[el.dataset.icon];
+  if (draw) draw(ic);
+});
 
 loadState().then(() => requestAnimationFrame(loop));
 
