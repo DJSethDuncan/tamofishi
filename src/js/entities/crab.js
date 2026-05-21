@@ -69,8 +69,8 @@ const createCrab = (tank, x, y) => {
         else if (r < 0.04) { c.vy = (Math.random() < 0.6 ? -1 : 1) * (0.03 + Math.random() * 0.05); c.idle = 0.5 + Math.random() * 1.5; }
         else if (r < 0.06) { c.vy = 0; c.idle = 1 + Math.random() * 3; }
       } else if (onFloor(entities)) {
-        // Continue strolling
-        if (c.strollTo >= 0) {
+        if (chaseCursor(c, 0.15)) { c.strollTo = -1; }
+        else if (c.strollTo >= 0) {
           const dx = c.strollTo - c.x;
           if (Math.abs(dx) < 1) { c.strollTo = -1; c.vx = 0; c.idle = 1 + Math.random() * 3; }
           else c.vx = Math.sign(dx) * 0.04;
@@ -80,7 +80,7 @@ const createCrab = (tank, x, y) => {
           else if (r < 0.007) { c.vy = -(0.15 + Math.random() * 0.1); c.vx = (Math.random() - 0.5) * 0.15; }
           else if (r < 0.04) { c.strollTo = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4); }
           else if (r < 0.25) { c.vx = (Math.random() < 0.5 ? -1 : 1) * (0.08 + Math.random() * 0.12); c.idle = 0.2 + Math.random() * 0.5; }
-          else if (!chaseCursor(c, 0.15)) { c.idle = 1 + Math.random() * 4; }
+          else { c.idle = 1 + Math.random() * 4; }
         }
       }
     }

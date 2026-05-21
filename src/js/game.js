@@ -189,7 +189,7 @@ loadState().then(() => requestAnimationFrame(loop));
 
 let last = performance.now();
 function loop(now) {
-  const dt = Math.min((now - last) / 1000, 0.1);
+  const dt = Math.min((now - last) / 1000, 0.1) * 0.85;
   last = now;
   entities.forEach(e => e.update(dt, entities));
   // Remove eaten flakes
