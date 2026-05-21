@@ -128,8 +128,6 @@ selector.addEventListener('click', (e) => {
   const sizes = e.target.dataset.sizes;
   if (type && SPAWNERS[type]) {
     entities.push(SPAWNERS[type]());
-    selector.classList.add('hidden');
-    sizer.classList.add('hidden');
   } else if (sizes) {
     pendingSizeType = sizes;
     sizer.classList.remove('hidden');
@@ -140,9 +138,6 @@ sizer.addEventListener('click', (e) => {
   if (size && pendingSizeType) {
     const key = pendingSizeType + '-' + size;
     if (SPAWNERS[key]) entities.push(SPAWNERS[key]());
-    selector.classList.add('hidden');
-    sizer.classList.add('hidden');
-    pendingSizeType = null;
   }
 });
 

@@ -23,6 +23,7 @@ const createCrab = (tank, x, y) => {
     let best = null, bestD = Infinity;
     for (const e of entities) {
       if ((e.type !== 'fish' && e.type !== 'shrimp') || e.eaten) continue;
+      if (e.type === 'shrimp' && e.perched) continue;
       const d = Math.hypot(e.x - c.x, e.y - c.y);
       if (d < 5 && Math.random() < 0.5 / (d + 1) && d < bestD) { best = e; bestD = d; }
     }

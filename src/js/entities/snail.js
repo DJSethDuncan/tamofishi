@@ -36,7 +36,8 @@ const createSnail = (tank, x, y) => {
     goalX: undefined, goalY: undefined,
     sex: Math.random() < 0.5 ? 'f' : 'm',
     facingX: 1, facingY: 0,
-    color: '#2a6a2a',
+    plant: null,
+    color: '#1a4a1a',
   };
 
   const chaseFood = () => {
@@ -74,6 +75,7 @@ const createSnail = (tank, x, y) => {
       s.vx *= 0.95;
       s.goalX = undefined; s.goalY = undefined;
       s.target = null;
+      s.plant = null;
     } else if (s.idle > 0) {
       s.idle -= dt;
       s.vx = 0; s.vy = 0;
@@ -83,11 +85,13 @@ const createSnail = (tank, x, y) => {
       const onWall = Math.round(s.x) <= tank.x1 || Math.round(s.x) >= tank.x2;
       const plant = findPlantAt(entities);
       if (onWall || plant) {
+        s.plant = plant || null;
         // Climbing wall or plant toward goalY
         // Fall off plants frequently (~once per 30s at 60fps)
         if (plant && Math.random() < 0.0006) {
           s.vx = (Math.random() - 0.5) * 0.04; s.vy = 0;
           s.goalX = undefined; s.goalY = undefined;
+          s.plant = null;
         } else {
           const dy = (s.goalY !== undefined ? s.goalY : s.y) - s.y;
           if (Math.abs(dy) < 0.5) { s.goalX = undefined; s.goalY = undefined; s.vx = 0; s.vy = 0; s.idle = 1 + Math.random() * 3; }
@@ -109,6 +113,7 @@ const createSnail = (tank, x, y) => {
       } else if (plant && Math.random() < 0.0006) {
         s.vx = (Math.random() - 0.5) * 0.04; s.vy = 0;
         s.goalX = undefined; s.goalY = undefined;
+        s.plant = null;
       } else {
         s.target = findNearestFlake(s, entities, floorOnly);
         if (!s.target) {
@@ -157,7 +162,8 @@ const createSnail = (tank, x, y) => {
   };
 
   s.draw = (ctx) => {
-    const rx = Math.round(s.x), ry = Math.round(s.y);
+    const sx = s.plant ? s.plant.swayAt(s.y) : 0;
+    const rx = Math.round(s.x) + sx, ry = Math.round(s.y);
     ctx.fillStyle = s.color;
     const moving = s.vx !== 0 || s.vy !== 0;
     const onWall = rx <= tank.x1 || rx >= tank.x2;

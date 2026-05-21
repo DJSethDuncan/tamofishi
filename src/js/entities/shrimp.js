@@ -13,6 +13,7 @@ const createShrimp = (tank, x, y) => {
     goalX: undefined, goalY: undefined,
     perched: false,
     perchSide: 1,
+    plant: null,
     panic: 0,
     age: 0,
     sex: Math.random() < 0.5 ? 'f' : 'm',
@@ -46,20 +47,27 @@ const createShrimp = (tank, x, y) => {
     sh.age += dt;
     if (sh.target && (sh.target.eaten || !entities.includes(sh.target))) sh.target = null;
 
-    // Panic near predators
+    // Panic near predators — perched shrimp mostly stay put
     const pred = nearPredator(entities);
     if (pred && !sh.panic) {
-      startPanic(sh);
-      sh.perched = false;
-      const dx = sh.x - pred.x, dy = sh.y - pred.y;
-      const d = Math.hypot(dx, dy) || 1;
-      sh.vx = (dx / d) * 0.4;
-      sh.vy = (dy / d) * 0.4;
+      if (sh.perched) {
+        if (Math.random() < 0.15) {
+          startPanic(sh);
+          sh.perched = false; sh.plant = null;
+          const dx = sh.x - pred.x, dy = sh.y - pred.y;
+          const d = Math.hypot(dx, dy) || 1;
+          sh.vx = (dx / d) * 0.4; sh.vy = (dy / d) * 0.4;
+        }
+      } else {
+        startPanic(sh);
+        const dx = sh.x - pred.x, dy = sh.y - pred.y;
+        const d = Math.hypot(dx, dy) || 1;
+        sh.vx = (dx / d) * 0.4; sh.vy = (dy / d) * 0.4;
+      }
     }
 
-    if (checkNudge(sh, entities)) {
+    if (checkNudge(sh, entities) && !sh.perched) {
       startPanic(sh);
-      sh.perched = false;
     }
 
     if (updatePanic(sh, dt)) {
@@ -69,14 +77,16 @@ const createShrimp = (tank, x, y) => {
       sh.vy += GRAVITY * dt * 3;
       sh.vx *= 0.95;
       sh.goalX = undefined; sh.goalY = undefined;
+      sh.plant = null;
     } else if (sh.perched) {
-      // Sitting on a plant sideways — stay still for a long time
+      // Sitting on a plant — reposition when idle expires
       sh.idle -= dt;
       sh.vx = 0; sh.vy = 0;
       if (sh.idle <= 0) {
-        // Occasionally leave the perch
-        if (Math.random() < 0.3) { sh.perched = false; sh.vx = sh.perchSide * 0.03; }
-        else sh.idle = 3 + Math.random() * 8;
+        sh.perched = false;
+        sh.goalX = sh.plant ? sh.plant.x : sh.x;
+        sh.goalY = FLOOR - 3 - Math.random() * 15;
+        sh.idle = 0;
       }
     } else if (sh.idle > 0) {
       sh.idle -= dt;
@@ -92,6 +102,7 @@ const createShrimp = (tank, x, y) => {
     } else if (sh.goalX !== undefined) {
       const plant = findPlantAt(entities);
       if (plant) {
+        sh.plant = plant;
         // Climbing plant toward perch spot
         const dy = (sh.goalY !== undefined ? sh.goalY : sh.y) - sh.y;
         if (Math.abs(dy) < 0.5) {
@@ -100,7 +111,7 @@ const createShrimp = (tank, x, y) => {
           sh.vx = 0; sh.vy = 0;
           sh.perched = true;
           sh.perchSide = Math.random() < 0.5 ? 1 : -1;
-          sh.idle = 5 + Math.random() * 15;
+          sh.idle = 3 + Math.random() * 8;
         } else {
           sh.vy = Math.sign(dy) * SPEED; sh.vx = 0;
         }
@@ -110,20 +121,28 @@ const createShrimp = (tank, x, y) => {
         else { sh.vx = Math.sign(dx) * SPEED; sh.vy = 0; }
       }
     } else {
-      // Decide what to do — strongly prefer plants
-      sh.target = noticeFlake(sh, entities);
-      if (!sh.target) {
-        const plants = entities.filter(e => e.type === 'plant');
-        const r = Math.random();
-        if (plants.length && r < 0.7) {
-          // Head to a plant
-          const pl = plants[Math.floor(Math.random() * plants.length)];
-          sh.goalX = pl.x;
-          sh.goalY = FLOOR - 3 - Math.random() * 15;
-        } else if (r < 0.85) {
-          sh.goalX = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4);
-        } else {
-          sh.idle = 0.5 + Math.random() * 2;
+      // If already on a plant, re-perch immediately
+      const onPlant = findPlantAt(entities);
+      if (onPlant) {
+        sh.perched = true;
+        sh.plant = onPlant;
+        sh.perchSide = Math.random() < 0.5 ? 1 : -1;
+        sh.idle = 3 + Math.random() * 8;
+      } else {
+        // Decide what to do — strongly prefer plants
+        sh.target = noticeFlake(sh, entities);
+        if (!sh.target) {
+          const plants = entities.filter(e => e.type === 'plant');
+          const r = Math.random();
+          if (plants.length && r < 0.7) {
+            const pl = plants[Math.floor(Math.random() * plants.length)];
+            sh.goalX = pl.x;
+            sh.goalY = FLOOR - 3 - Math.random() * 15;
+          } else if (r < 0.85) {
+            sh.goalX = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4);
+          } else {
+            sh.idle = 0.5 + Math.random() * 2;
+          }
         }
       }
     }
@@ -151,7 +170,8 @@ const createShrimp = (tank, x, y) => {
   };
 
   sh.draw = (ctx) => {
-    const rx = Math.round(sh.x), ry = Math.round(sh.y);
+    const sx = sh.plant ? sh.plant.swayAt(sh.y) : 0;
+    const rx = Math.round(sh.x) + sx, ry = Math.round(sh.y);
     if (sh.age < 900) {
       ctx.fillStyle = '#aaffaa';
       ctx.fillRect(rx, ry, 1, 1);

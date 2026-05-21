@@ -66,7 +66,7 @@ const createFish = (tank, x, y) => {
     if (!f.target && f.age >= 3600) {
       for (const e of entities) {
         if (e.type !== 'shrimp') continue;
-        if (entities.some(p => p.type === 'plant' && Math.abs(Math.round(e.x) - Math.round(p.x)) < 2 && e.y < tank.y2)) continue;
+        if (e.perched) continue;
         const d = Math.hypot(e.x - f.x, e.y - f.y);
         if (d < 6 && Math.random() < 0.3 / (d + 1)) { f.target = e; break; }
       }
@@ -75,7 +75,7 @@ const createFish = (tank, x, y) => {
 
     if (f.target && f.target.type === 'shrimp') {
       const s = f.target;
-      if (entities.some(p => p.type === 'plant' && Math.abs(Math.round(s.x) - Math.round(p.x)) < 2 && s.y < tank.y2)) { f.target = null; }
+      if (s.perched) { f.target = null; }
       else {
       const dx = s.x - f.x, dy = s.y - f.y, d = Math.hypot(dx, dy);
       if (d < EAT_DIST) { entities.splice(entities.indexOf(s), 1); f.target = null; f.idle = FEED_COOLDOWN; }

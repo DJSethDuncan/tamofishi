@@ -35,6 +35,21 @@ const createPlant = (tank, x, size) => {
     for (const stalk of stalks) stalk.phase += dt * stalk.speed;
   };
 
+  p.swayAt = (y) => {
+    const i = FLOOR - Math.round(y);
+    if (i < 0) return 0;
+    let best = 0, bestDist = Infinity;
+    for (const stalk of stalks) {
+      if (i >= stalk.h) continue;
+      const t = i / stalk.h;
+      const spread = Math.round(stalk.lean * t * stalk.h * 0.3);
+      const sway = Math.round(Math.sin(stalk.phase + i * 0.4) * (t * t) * 1.5);
+      const dist = Math.abs(stalk.lean);
+      if (dist < bestDist) { bestDist = dist; best = spread + sway; }
+    }
+    return best;
+  };
+
   p.draw = (ctx) => {
     const rx = Math.round(p.x);
     for (const stalk of stalks) {
