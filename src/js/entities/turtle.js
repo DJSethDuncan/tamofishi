@@ -24,7 +24,7 @@ const createTurtle = (tank, x, y) => {
     let best = null, bestD = Infinity;
     for (const e of entities) {
       if ((e.type !== 'fish' && e.type !== 'crab') || e.eaten) continue;
-      if (e.type === 'crab' && Math.random() > 0.2) continue;
+      if (e.type === 'crab' && Math.random() > 0.05) continue;
       const d = Math.hypot(e.x - t.x, e.y - t.y);
       if (d < 6 && Math.random() < 0.5 / (d + 1) && d < bestD) { best = e; bestD = d; }
     }

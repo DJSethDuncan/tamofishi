@@ -50,7 +50,6 @@ const createCrab = (tank, x, y) => {
     }
     if (!c.panic && entities.some(e => e.type === 'turtle' && Math.hypot(e.x - c.x, e.y - c.y) < 4)) startPanic(c);
     if (updatePanic(c, dt)) { c.x += c.vx; c.y += c.vy; }
-    else if (chaseCursor(c, 0.15)) { if (c.climbing) c.climbing = false; }
     else {
     if (c.target && (c.target.eaten || !entities.includes(c.target) || ((c.target.type === 'fish' || c.target.type === 'shrimp') && Math.hypot(c.target.x - c.x, c.target.y - c.y) >= FEED_RANGE))) c.target = null;
     if (c.idle > 0) { c.idle -= dt; if (!c.climbing) c.vx *= 0.9; }
@@ -80,7 +79,7 @@ const createCrab = (tank, x, y) => {
           else if (r < 0.007) { c.vy = -(0.15 + Math.random() * 0.1); c.vx = (Math.random() - 0.5) * 0.15; }
           else if (r < 0.04) { c.strollTo = tank.x1 + 2 + Math.random() * (tank.x2 - tank.x1 - 4); }
           else if (r < 0.25) { c.vx = (Math.random() < 0.5 ? -1 : 1) * (0.08 + Math.random() * 0.12); c.idle = 0.2 + Math.random() * 0.5; }
-          else { c.idle = 1 + Math.random() * 4; }
+          else if (!chaseCursor(c, 0.15)) { c.idle = 1 + Math.random() * 4; }
         }
       }
     }

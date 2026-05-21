@@ -44,7 +44,7 @@ const createPlant = (tank, x, size) => {
         const swayAmount = t * t;
         const sway = Math.round(Math.sin(stalk.phase + i * 0.4) * swayAmount * 1.5);
         const py = FLOOR - i;
-        ctx.fillStyle = t < 0.4 ? '#1a4a1a' : '#1e5a1e';
+        ctx.fillStyle = t < 0.4 ? '#1e551e' : '#22661e';
         ctx.fillRect(rx + spread + sway, py, 1, 1);
       }
     }

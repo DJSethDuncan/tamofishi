@@ -14,6 +14,7 @@ const createShrimp = (tank, x, y) => {
     perched: false,
     perchSide: 1,
     panic: 0,
+    age: 0,
     sex: Math.random() < 0.5 ? 'f' : 'm',
     color: '#1a6a3a',
   };
@@ -42,6 +43,7 @@ const createShrimp = (tank, x, y) => {
   };
 
   sh.update = (dt, entities) => {
+    sh.age += dt;
     if (sh.target && (sh.target.eaten || !entities.includes(sh.target))) sh.target = null;
 
     // Panic near predators
@@ -134,6 +136,12 @@ const createShrimp = (tank, x, y) => {
       sh.y += sh.vy;
     }
 
+    // Birth
+    if (sh.age >= 900 && sh.sex === 'f' && Math.random() < 0.0000046) {
+      const count = 1 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < count; i++) entities.push(createShrimp(tank, sh.x + (Math.random() - 0.5) * 2, sh.y));
+    }
+
     // Landing
     const shrimpFloor = getSurfaceY(sh.x, sh.y, entities, FLOOR);
     if (sh.y >= shrimpFloor) { sh.y = shrimpFloor; if (sh.vy > 0) { sh.vy = 0; sh.vx = 0; sh.goalX = undefined; sh.goalY = undefined; sh.idle = 0.3 + Math.random() * 1; } sh.vy = 0; }
@@ -144,6 +152,11 @@ const createShrimp = (tank, x, y) => {
 
   sh.draw = (ctx) => {
     const rx = Math.round(sh.x), ry = Math.round(sh.y);
+    if (sh.age < 900) {
+      ctx.fillStyle = '#aaffaa';
+      ctx.fillRect(rx, ry, 1, 1);
+      return;
+    }
     ctx.fillStyle = sh.color;
     if (sh.perched) {
       // Sideways on plant: vertical body, offset to one side

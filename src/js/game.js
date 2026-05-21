@@ -27,7 +27,7 @@ const loadState = async () => {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
       if (s.type === 'crab') { const c = createCrab(TANK, s.x, s.y); c.sex = s.sex; entities.push(c); }
-      if (s.type === 'shrimp') { const sp = createShrimp(TANK, s.x, s.y); sp.sex = s.sex; entities.push(sp); }
+      if (s.type === 'shrimp') { const sp = createShrimp(TANK, s.x, s.y); sp.sex = s.sex; sp.age = s.age || 0; entities.push(sp); }
       if (s.type === 'snail') { const n = createSnail(TANK, s.x, s.y); n.sex = s.sex; entities.push(n); }
       if (s.type === 'turtle') { const tt = createTurtle(TANK, s.x, s.y); tt.sex = s.sex; entities.push(tt); }
       if (s.type === 'plant') entities.push(createPlant(TANK, s.x, s.size));

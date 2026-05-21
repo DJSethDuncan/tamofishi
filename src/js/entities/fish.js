@@ -37,8 +37,8 @@ const createFish = (tank, x, y) => {
       f.vx *= 0.98;
       if (f.idle <= 0) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.1);
     } else {
-      if (Math.random() < 0.003) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.1);
-      if (Math.random() < 0.004) f.idle = 0.5 + Math.random() * 2;
+      if (Math.random() < 0.008) f.vx = (Math.random() < 0.5 ? -1 : 1) * (0.08 + Math.random() * 0.12);
+      if (Math.random() < 0.003) f.idle = 0.3 + Math.random() * 1;
     }
     if (entities) school(entities);
     f.x += f.vx;
@@ -59,7 +59,6 @@ const createFish = (tank, x, y) => {
     checkNudge(f, entities);
     if (!f.panic && entities.some(e => e.type === 'crab' && Math.hypot(e.x - f.x, e.y - f.y) < 2)) startPanic(f);
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
-    else if (chaseCursor(f, 0.15)) { /* chasing cursor */ }
     else {
     if (f.target && (f.target.eaten || !entities.includes(f.target))) f.target = null;
     if (f.idle > 0) { swimIdle(dt, entities); return; }
@@ -83,7 +82,7 @@ const createFish = (tank, x, y) => {
       else { f.x += (dx / d) * 0.18; f.y += (dy / d) * 0.18; }
       }
     } else if (f.target) chaseFood();
-    else swimIdle(dt, entities);
+    else if (!chaseCursor(f, 0.15)) swimIdle(dt, entities);
 
     }
     // ~once per hour at 60fps: 1/(60*3600) ≈ 4.6e-6
