@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -14,9 +14,12 @@ ipcMain.handle('save-tank', (_, data) => {
   fs.writeFileSync(SAVE_PATH, JSON.stringify(data));
 });
 
+app.dock?.setIcon(nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')));
+
 app.whenReady().then(() => {
   const win = new BrowserWindow({
     width: 1440, height: 585, resizable: false,
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   win.setMenu(null);

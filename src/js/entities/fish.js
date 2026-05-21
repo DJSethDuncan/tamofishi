@@ -85,8 +85,8 @@ const createFish = (tank, x, y) => {
     else if (!chaseCursor(f, 0.15)) swimIdle(dt, entities);
 
     }
-    // ~once per hour at 60fps: 1/(60*3600) ≈ 4.6e-6
-    if (f.sex === 'f' && Math.random() < 0.0000046) {
+    // ~once per 3 hours at 60fps: 1/(60*3600*3) ≈ 1.5e-6
+    if (f.sex === 'f' && Math.random() < 0.0000015) {
       const count = 1 + Math.floor(Math.random() * 5);
       for (let i = 0; i < count; i++) entities.push(createFish(tank, f.x + (Math.random() - 0.5) * 2, f.y));
     }
