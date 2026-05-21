@@ -20,10 +20,25 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 
 #tank-wrap { position: relative; flex: 1; min-height: 0; }
 
-.btn-clear {
+.btn-settings {
   position: absolute; top: 3.4%; right: 1.2%; z-index: 10;
-  width: 150px; flex: none;
+  width: 32px; height: 32px; flex: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
 }
+.btn-settings canvas { image-rendering: pixelated; width: 21px; height: 21px; pointer-events: none; }
+
+#settings-modal {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+#settings-modal.hidden { display: none; }
+#settings-panel {
+  background: #0a1a0a; border: 2px solid #1a5a1a;
+  padding: 8px; display: flex; flex-direction: column; gap: 4px;
+  min-width: 200px;
+}
+.btn-modal { flex: none; padding: 8px 16px; text-align: center; }
 
 #controls { display: flex; }
 #controls button { flex: 1; }

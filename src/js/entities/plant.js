@@ -23,6 +23,12 @@ const createPlant = (tank, x, size) => {
     });
   }
 
+  const shade = Math.floor(Math.random() * 7) - 3; // -3 to +3
+  const baseR = 0x2a + shade, baseG = 0x7a + shade * 3, baseB = 0x2a + shade;
+  const tipR = 0x2e + shade, tipG = 0x92 + shade * 3, tipB = 0x30 + shade;
+  const baseColor = `rgb(${baseR},${baseG},${baseB})`;
+  const tipColor = `rgb(${tipR},${tipG},${tipB})`;
+
   const p = {
     type: 'plant',
     size,
@@ -59,7 +65,7 @@ const createPlant = (tank, x, size) => {
         const swayAmount = t * t;
         const sway = Math.round(Math.sin(stalk.phase + i * 0.4) * swayAmount * 1.5);
         const py = FLOOR - i;
-        ctx.fillStyle = t < 0.4 ? '#1e551e' : '#22661e';
+        ctx.fillStyle = t < 0.4 ? baseColor : tipColor;
         ctx.fillRect(rx + spread + sway, py, 1, 1);
       }
     }

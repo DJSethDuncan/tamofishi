@@ -10,6 +10,9 @@ const createFish = (tank, x, y) => {
     panic: 0,
     age: 0,
     sex: Math.random() < 0.5 ? 'f' : 'm',
+    belly: 0,
+    fullTimer: 0,
+    bellyMax: 2 + Math.floor(Math.random() * 4),
   };
 
   const SCHOOL_RANGE = 10;
@@ -47,23 +50,29 @@ const createFish = (tank, x, y) => {
   };
 
   const chaseFood = () => {
-    if (tryEat(f)) return;
+    if (tryEat(f)) { fed(); return; }
     const dx = f.target.x - f.x, dy = f.target.y - f.y;
     const d = Math.hypot(dx, dy);
     f.x += (dx / d) * 0.18;
     f.y += (dy / d) * 0.18;
   };
 
+  const fed = () => {
+    f.belly++;
+    if (f.belly >= f.bellyMax) { f.fullTimer = 3600; f.belly = 0; f.bellyMax = 2 + Math.floor(Math.random() * 4); }
+  };
+
   f.update = (dt, entities) => {
     f.age += dt;
+    if (f.fullTimer > 0) f.fullTimer -= dt;
     checkNudge(f, entities);
     if (!f.panic && entities.some(e => e.type === 'crab' && Math.hypot(e.x - f.x, e.y - f.y) < 2)) startPanic(f);
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
     else {
     if (f.target && (f.target.eaten || !entities.includes(f.target))) f.target = null;
     if (f.idle > 0) { swimIdle(dt, entities); return; }
-    // Adult fish hunt shrimp
-    if (!f.target && f.age >= 3600) {
+    // Adult fish hunt shrimp (not when full)
+    if (!f.target && f.age >= 3600 && f.fullTimer <= 0) {
       for (const e of entities) {
         if (e.type !== 'shrimp') continue;
         if (e.perched) continue;
@@ -71,17 +80,18 @@ const createFish = (tank, x, y) => {
         if (d < 6 && Math.random() < 0.3 / (d + 1)) { f.target = e; break; }
       }
     }
-    if (!f.target) f.target = noticeFlake(f, entities);
+    if (!f.target && f.fullTimer <= 0) f.target = noticeFlake(f, entities);
 
     if (f.target && f.target.type === 'shrimp') {
       const s = f.target;
       if (s.perched) { f.target = null; }
       else {
       const dx = s.x - f.x, dy = s.y - f.y, d = Math.hypot(dx, dy);
-      if (d < EAT_DIST) { entities.splice(entities.indexOf(s), 1); f.target = null; f.idle = FEED_COOLDOWN; }
+      if (d < EAT_DIST) { entities.splice(entities.indexOf(s), 1); f.target = null; f.idle = FEED_COOLDOWN; fed(); }
       else { f.x += (dx / d) * 0.18; f.y += (dy / d) * 0.18; }
       }
     } else if (f.target) chaseFood();
+    else if (fleeCursor(f, 0.25)) { /* fleeing murder cursor */ }
     else if (!chaseCursor(f, 0.15)) swimIdle(dt, entities);
 
     }

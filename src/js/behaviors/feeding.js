@@ -2,10 +2,12 @@ const FEED_RANGE = 10;
 const FEED_COOLDOWN = 2;
 const EAT_DIST = 0.8;
 
+const isFood = (e) => ((e.type === 'flake' || e.type === 'duckweed') && !e.eaten) || e.dead;
+
 const findNearestFlake = (entity, entities, filter) => {
   let best = null, bestD = Infinity;
   for (const e of entities) {
-    if (e.type !== 'flake' || e.eaten) continue;
+    if (!isFood(e)) continue;
     if (filter && !filter(e)) continue;
     const d = Math.hypot(e.x - entity.x, e.y - entity.y);
     if (d < FEED_RANGE && d < bestD) { best = e; bestD = d; }
@@ -17,7 +19,7 @@ const findNearestFlake = (entity, entities, filter) => {
 const noticeFlake = (entity, entities, filter) => {
   let best = null, bestD = Infinity;
   for (const e of entities) {
-    if (e.type !== 'flake' || e.eaten) continue;
+    if (!isFood(e)) continue;
     if (filter && !filter(e)) continue;
     const d = Math.hypot(e.x - entity.x, e.y - entity.y);
     if (d < FEED_RANGE && Math.random() < 1 / (d * d + 1) && d < bestD) { best = e; bestD = d; }

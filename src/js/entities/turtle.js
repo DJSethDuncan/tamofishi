@@ -45,6 +45,7 @@ const createTurtle = (tank, x, y) => {
   };
 
   t.update = (dt, entities) => {
+    if (t.dragged) return;
     if (checkNudge(t, entities)) {
       const r = Math.random();
       if (r < 0.1) startPanic(t);

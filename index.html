@@ -9,7 +9,14 @@
 <div id="app-wrap">
 <div id="tank-wrap">
   <canvas id="c"></canvas>
-  <button id="clear" class="btn btn-clear">CLEAR</button>
+  <button id="settings-btn" class="btn btn-settings"><canvas id="gear-icon" width="7" height="7"></canvas></button>
+  <div id="settings-modal" class="hidden">
+    <div id="settings-panel">
+      <button id="murder-btn" class="btn btn-modal">MURDER</button>
+      <button id="clear" class="btn btn-modal">CLEAR TANK</button>
+      <button id="settings-close" class="btn btn-modal">CLOSE</button>
+    </div>
+  </div>
 </div>
 <div id="controls">
   <button id="add" class="btn">ADD</button>
@@ -20,6 +27,7 @@
   <button class="btn" data-type="snail"><canvas class="icon" data-icon="snail"></canvas> SNAIL</button>
   <button class="btn" data-type="turtle"><canvas class="icon" data-icon="turtle"></canvas> TURTLE</button>
   <button class="btn" data-type="shrimp"><canvas class="icon" data-icon="shrimp"></canvas> SHRIMP</button>
+  <button class="btn" data-type="duckweed"><canvas class="icon" data-icon="duckweed"></canvas> DUCKWEED</button>
   <button class="btn" data-sizes="plant"><canvas class="icon" data-icon="plant"></canvas> PLANT</button>
   <button class="btn" data-sizes="rock"><canvas class="icon" data-icon="rock"></canvas> ROCK</button>
 </div>
@@ -44,6 +52,7 @@
 <script src="src/js/entities/turtle.js"></script>
 <script src="src/js/entities/shrimp.js"></script>
 <script src="src/js/entities/snail.js"></script>
+<script src="src/js/entities/duckweed.js"></script>
 <script src="src/js/entities/fish.js"></script>
 <script src="src/js/game.js"></script>
 </body>
