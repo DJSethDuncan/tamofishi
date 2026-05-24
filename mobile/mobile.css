@@ -1,20 +1,21 @@
 #app-wrap {
   position: relative;
+  justify-content: flex-end;
 }
 
 #tank-wrap {
   position: absolute;
   inset: 0;
   flex: none;
+  z-index: 1;
 }
 
 #controls,
 #selector,
 #sizer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   z-index: 10;
   background: rgba(10, 26, 10, 0.85);
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
 }
