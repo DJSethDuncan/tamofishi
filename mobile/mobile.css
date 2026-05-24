@@ -1,0 +1,20 @@
+#app-wrap {
+  position: relative;
+}
+
+#tank-wrap {
+  position: absolute;
+  inset: 0;
+  flex: none;
+}
+
+#controls,
+#selector,
+#sizer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: rgba(10, 26, 10, 0.85);
+}
