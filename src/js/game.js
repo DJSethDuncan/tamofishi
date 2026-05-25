@@ -190,7 +190,11 @@ let pendingSizeType = null;
 
 document.getElementById('settings-btn').addEventListener('click', () => {
   settingsModal.classList.toggle('hidden');
-  if (!settingsModal.classList.contains('hidden')) addPanel.classList.add('hidden');
+  if (!settingsModal.classList.contains('hidden')) {
+    addPanel.classList.add('hidden');
+    panelSizer.classList.add('hidden');
+    pendingSizeType = null;
+  }
 });
 document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
 settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });

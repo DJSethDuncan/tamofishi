@@ -9,6 +9,11 @@ if [ -z "$TAG" ]; then
   exit 1
 fi
 
+if [[ "$TAG" != v* ]]; then
+  echo "Error: tag must start with 'v' (e.g. v1.0) — the CI trigger pattern is 'v*'."
+  exit 1
+fi
+
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Error: uncommitted changes. Commit or stash them before retagging."
   exit 1

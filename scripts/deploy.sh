@@ -9,7 +9,24 @@ if [ -z "$TAG" ]; then
   exit 1
 fi
 
-MARKETING_VERSION=$(grep -m1 MARKETING_VERSION mobile/ios/App/App.xcodeproj/project.pbxproj | grep -o '[0-9][0-9.]*')
+if [[ "$TAG" != v* ]]; then
+  echo "Error: tag must start with 'v' (e.g. v1.0) — the CI trigger pattern is 'v*'."
+  exit 1
+fi
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "mobile" ]; then
+  echo "Error: must be on 'mobile' branch (currently on '$CURRENT_BRANCH')."
+  exit 1
+fi
+
+PBXPROJ="mobile/ios/App/App.xcodeproj/project.pbxproj"
+if [ ! -f "$PBXPROJ" ]; then
+  echo "Error: $PBXPROJ not found — run 'npx cap add ios' inside mobile/ first."
+  exit 1
+fi
+
+MARKETING_VERSION=$(grep -m1 MARKETING_VERSION "$PBXPROJ" | grep -o '[0-9][0-9.]*')
 TAG_VERSION=$(echo "$TAG" | sed 's/^v//')
 
 if [ "$MARKETING_VERSION" != "$TAG_VERSION" ]; then
