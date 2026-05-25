@@ -43,7 +43,7 @@ Body (2-column grid):
 ```
 [FISH]   [CRAB]
 [SNAIL]  [TURTLE]
-[SHRIMP] [DUCKWEED]
+[SHRIMP]
 ```
 
 Tapping any creature: spawns it immediately. Panel stays open.
@@ -54,10 +54,11 @@ Header: `PLANTS & DECOR ▴` (▾ when collapsed). Clicking toggles the body.
 
 Body:
 ```
-[PLANT]  [ROCK]
+[DUCKWEED] [PLANT] [ROCK]
 [SM] [MD] [LG]   ← size row, visible once plant or rock tapped
 ```
 
+- Duckweed is a direct-add (no size needed).
 - Size row (`#panel-sizer`) starts hidden.
 - Tapping PLANT or ROCK: reveals size row. `pendingSizeType` is set.
 - Tapping a size: spawns entity. Size row stays visible. Panel stays open.
