@@ -47,6 +47,7 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
   cursor: pointer; letter-spacing: 1px;
 }
 .accordion-header:hover { background: #1a5a1a; }
+.accordion-header:active { background: #33ff33; color: #0a1a0a; }
 
 .accordion-body { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 4px; }
 .accordion-body.hidden { display: none; }
