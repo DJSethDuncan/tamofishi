@@ -88,6 +88,45 @@ npm run build:win    # builds to builds/*.exe
 npm run build:all    # both
 ```
 
+## Mobile (iOS + Android)
+
+Mobile development lives on the `mobile` branch. The `src/` directory on `main` is the source of truth — the mobile app is a Capacitor wrapper around the same web content.
+
+### Setup (first time on a new machine)
+
+```bash
+git checkout mobile
+cd mobile
+npm install
+npx cap add ios
+npx cap add android
+```
+
+### Day-to-day workflow
+
+1. Make game logic changes on `main` in `src/` as normal
+2. Merge `main` into `mobile` to pull in updates
+3. From the repo root, rebuild the web assets:
+   ```bash
+   npm run build:mobile
+   ```
+4. From `mobile/`, sync assets into the native projects:
+   ```bash
+   cd mobile && npx cap sync
+   ```
+
+### Open in Xcode / Android Studio
+
+```bash
+cd mobile && npx cap open ios      # Xcode
+cd mobile && npx cap open android  # Android Studio
+```
+
+### Notes
+
+- `mobile/ios/` and `mobile/android/` are gitignored — regenerate them with `npx cap add ios/android` after `npm install`
+- `cursor.js` uses `mousemove` which doesn't fire on touch screens — touch event handling is a `mobile` branch concern, not `main`
+
 ## Tech
 
-Vanilla JS, HTML Canvas, zero runtime dependencies. Electron for desktop builds. All rendering is done on a tiny 180x60 canvas scaled up with `image-rendering: pixelated`. State persists via Electron IPC (desktop) or localStorage (web).
+Vanilla JS, HTML Canvas, zero runtime dependencies. Electron for desktop builds. All rendering is done on a tiny 180x60 canvas scaled up with `image-rendering: pixelated`. State persists via Electron IPC (desktop) or localStorage (web/mobile).

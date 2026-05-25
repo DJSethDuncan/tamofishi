@@ -1,0 +1,8 @@
+{
+  "appId": "com.djsethduncan.tamofishi",
+  "appName": "Tamofishi",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

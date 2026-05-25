@@ -3,7 +3,7 @@
   src: local('Courier New'), local('Courier');
 }
 
-html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: 'Courier New', Courier, monospace; }
+html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
 #app-wrap { width: 100%; display: flex; flex-direction: column; height: 100vh; margin: 0 auto; }
 canvas#c { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
 canvas.icon { display: inline-block; image-rendering: pixelated; }
@@ -20,12 +20,43 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 
 #tank-wrap { position: relative; flex: 1; min-height: 0; }
 
-.btn-settings {
+#icon-buttons {
   position: absolute; top: 3.4%; right: 1.2%; z-index: 10;
+  display: flex; gap: 4px;
+}
+
+.btn-settings {
   width: 32px; height: 32px; flex: none; padding: 0;
   display: flex; align-items: center; justify-content: center;
 }
 .btn-settings canvas { image-rendering: pixelated; width: 21px; height: 21px; pointer-events: none; }
+
+#add-btn { font-size: 22px; line-height: 1; }
+
+#add-panel {
+  position: absolute; top: calc(3.4% + 40px); right: 1.2%; z-index: 15;
+  background: #0a1a0a; border: 2px solid #1a5a1a;
+  padding: 6px; min-width: 180px;
+}
+#add-panel.hidden { display: none; }
+
+.accordion-header {
+  width: 100%; text-align: left; padding: 6px 8px; margin-bottom: 4px;
+  background: #0d3d0d; color: #33ff33; border: 1px solid #1a5a1a;
+  font-family: 'Courier New', Courier, monospace; font-size: 11px;
+  cursor: pointer; letter-spacing: 1px;
+}
+.accordion-header:hover { background: #1a5a1a; }
+.accordion-header:active { background: #33ff33; color: #0a1a0a; }
+
+.accordion-body { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 4px; }
+.accordion-body.hidden { display: none; }
+
+.acc-btn { flex: none; padding: 5px 8px; font-size: 11px; }
+
+#panel-sizer { display: flex; width: 100%; gap: 2px; margin-top: 2px; }
+#panel-sizer.hidden { display: none; }
+#panel-sizer .acc-btn { flex: 1; }
 
 #settings-modal {
   position: absolute; inset: 0; z-index: 20;
@@ -39,17 +70,6 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
   min-width: 200px;
 }
 .btn-modal { flex: none; padding: 8px 16px; text-align: center; }
-
-#controls { display: flex; }
-#controls button { flex: 1; }
-
-#selector { display: flex; }
-#selector button { flex: 1; }
-#selector.hidden { display: none; }
-
-#sizer { display: flex; }
-#sizer button { flex: 1; }
-#sizer.hidden { display: none; }
 
 .icon { width: 20px; height: 12px; image-rendering: pixelated; vertical-align: middle; margin-right: 2px; pointer-events: none; }
 
