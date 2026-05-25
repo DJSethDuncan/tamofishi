@@ -104,7 +104,7 @@ jobs:
             <string>manual</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>com.djsethduncan.tamofishi</key>
+              <key>PerspectiveGrid.Tamofishi</key>
               <string>Tamofishi App Store</string>
             </dict>
             <key>destination</key>
