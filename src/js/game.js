@@ -184,6 +184,10 @@ const setMurderMode = (on) => {
 };
 
 const settingsModal = document.getElementById('settings-modal');
+const addPanel = document.getElementById('add-panel');
+const panelSizer = document.getElementById('panel-sizer');
+let pendingSizeType = null;
+
 document.getElementById('settings-btn').addEventListener('click', () => {
   settingsModal.classList.toggle('hidden');
   if (!settingsModal.classList.contains('hidden')) addPanel.classList.add('hidden');
@@ -201,19 +205,23 @@ document.getElementById('clear').addEventListener('click', () => {
   settingsModal.classList.add('hidden');
 });
 
-const addPanel = document.getElementById('add-panel');
-const panelSizer = document.getElementById('panel-sizer');
-let pendingSizeType = null;
-
 document.getElementById('add-btn').addEventListener('click', (e) => {
   e.stopPropagation();
+  const opening = addPanel.classList.contains('hidden');
   addPanel.classList.toggle('hidden');
-  if (!addPanel.classList.contains('hidden')) settingsModal.classList.add('hidden');
+  if (opening) {
+    settingsModal.classList.add('hidden');
+  } else {
+    panelSizer.classList.add('hidden');
+    pendingSizeType = null;
+  }
 });
 
 document.addEventListener('click', (e) => {
   if (!addPanel.classList.contains('hidden') && !addPanel.contains(e.target) && e.target.id !== 'add-btn') {
     addPanel.classList.add('hidden');
+    panelSizer.classList.add('hidden');
+    pendingSizeType = null;
   }
 });
 
