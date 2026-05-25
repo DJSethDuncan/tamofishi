@@ -20,7 +20,7 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 echo "Pushing latest commits..."
-git push origin mobile
+git push origin main
 
 echo "Retagging $TAG..."
 

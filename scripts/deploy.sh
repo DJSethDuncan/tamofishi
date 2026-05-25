@@ -15,8 +15,8 @@ if [[ "$TAG" != v* ]]; then
 fi
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$CURRENT_BRANCH" != "mobile" ]; then
-  echo "Error: must be on 'mobile' branch (currently on '$CURRENT_BRANCH')."
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "Error: must be on 'main' branch (currently on '$CURRENT_BRANCH')."
   exit 1
 fi
 
@@ -40,7 +40,7 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 echo "Pushing latest commits..."
-git push origin mobile
+git push origin main
 
 echo "Tagging $TAG..."
 git tag "$TAG"
