@@ -71,8 +71,6 @@ const SPAWNERS = {
   'rock-tall': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'tall'),
 };
 
-const selector = document.getElementById('selector');
-
 const canvasToTank = (e) => {
   const rect = canvas.getBoundingClientRect();
   return { x: (e.clientX - rect.left) / rect.width * W, y: (e.clientY - rect.top) / rect.height * H };
@@ -146,14 +144,6 @@ canvas.addEventListener('click', (e) => {
   if (hit) startPanic(hit);
 });
 
-const sizer = document.getElementById('sizer');
-let pendingSizeType = null;
-
-document.getElementById('add').addEventListener('click', () => {
-  selector.classList.toggle('hidden');
-  sizer.classList.add('hidden');
-  pendingSizeType = null;
-});
 let murderMode = false;
 
 // Generate knife cursor
@@ -194,7 +184,10 @@ const setMurderMode = (on) => {
 };
 
 const settingsModal = document.getElementById('settings-modal');
-document.getElementById('settings-btn').addEventListener('click', () => settingsModal.classList.toggle('hidden'));
+document.getElementById('settings-btn').addEventListener('click', () => {
+  settingsModal.classList.toggle('hidden');
+  if (!settingsModal.classList.contains('hidden')) addPanel.classList.add('hidden');
+});
 document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
 settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
 document.getElementById('murder-btn').addEventListener('click', () => {
@@ -207,21 +200,48 @@ document.getElementById('clear').addEventListener('click', () => {
   }
   settingsModal.classList.add('hidden');
 });
-selector.addEventListener('click', (e) => {
+
+const addPanel = document.getElementById('add-panel');
+const panelSizer = document.getElementById('panel-sizer');
+let pendingSizeType = null;
+
+document.getElementById('add-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  addPanel.classList.toggle('hidden');
+  if (!addPanel.classList.contains('hidden')) settingsModal.classList.add('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (!addPanel.classList.contains('hidden') && !addPanel.contains(e.target) && e.target.id !== 'add-btn') {
+    addPanel.classList.add('hidden');
+  }
+});
+
+document.querySelectorAll('.accordion-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const body = header.nextElementSibling;
+    const arrow = header.querySelector('.acc-arrow');
+    const collapsed = body.classList.toggle('hidden');
+    arrow.textContent = collapsed ? '▾' : '▴';
+    if (collapsed && header.dataset.section === 'decor') {
+      panelSizer.classList.add('hidden');
+      pendingSizeType = null;
+    }
+  });
+});
+
+addPanel.addEventListener('click', (e) => {
   const type = e.target.dataset.type;
   const sizes = e.target.dataset.sizes;
+  const size = e.target.dataset.size;
   if (type && SPAWNERS[type]) {
     const result = SPAWNERS[type]();
-    if (Array.isArray(result)) result.forEach(e => entities.push(e));
+    if (Array.isArray(result)) result.forEach(r => entities.push(r));
     else entities.push(result);
   } else if (sizes) {
     pendingSizeType = sizes;
-    sizer.classList.remove('hidden');
-  }
-});
-sizer.addEventListener('click', (e) => {
-  const size = e.target.dataset.size;
-  if (size && pendingSizeType) {
+    panelSizer.classList.remove('hidden');
+  } else if (size && pendingSizeType) {
     const key = pendingSizeType + '-' + size;
     if (SPAWNERS[key]) entities.push(SPAWNERS[key]());
   }
