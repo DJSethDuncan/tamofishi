@@ -9,3 +9,10 @@
   flex: none;
   z-index: 1;
 }
+
+#icon-buttons {
+  top: 50%;
+  right: 1.2%;
+  transform: translateY(-50%);
+  flex-direction: column;
+}
