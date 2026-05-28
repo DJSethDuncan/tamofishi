@@ -73,6 +73,14 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 
 .icon { width: 20px; height: 12px; image-rendering: pixelated; vertical-align: middle; margin-right: 2px; pointer-events: none; }
 
+#tip-panel {
+  background: #0a1a0a; border: 2px solid #1a5a1a;
+  padding: 8px; display: flex; flex-direction: column; gap: 4px;
+  min-width: 200px;
+}
+#tip-panel.hidden { display: none; }
+.tip-label { color: #33ff33; font-size: 11px; letter-spacing: 1px; text-align: center; padding: 4px 0; }
+
 @media (max-width: 600px) {
   .btn { font-size: 10px; padding: 4px 0; letter-spacing: 0; }
   .icon { width: 14px; height: 8px; margin-right: 1px; }
