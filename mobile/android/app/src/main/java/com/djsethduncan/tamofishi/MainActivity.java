@@ -14,7 +14,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onWindowFocusChanged(boolean hasFocus) {
+    public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) hideSystemBars();
     }
