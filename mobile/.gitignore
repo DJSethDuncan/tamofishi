@@ -1,6 +1,5 @@
 node_modules/
 www/
-android/
 
 # iOS - generated artifacts only
 ios/App/Pods/
@@ -10,3 +9,11 @@ ios/App/App.xcworkspace/xcuserdata/
 ios/App/App.xcodeproj/xcuserdata/
 ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
 ios/**/.DS_Store
+
+# Android - generated artifacts only
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/**/.DS_Store
