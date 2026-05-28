@@ -11,6 +11,7 @@ ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
 ios/**/.DS_Store
 
 # Android - generated artifacts only
+android/.idea/
 android/.gradle/
 android/app/build/
 android/build/
