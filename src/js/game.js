@@ -209,6 +209,34 @@ document.getElementById('clear').addEventListener('click', () => {
   settingsModal.classList.add('hidden');
 });
 
+if (window.Capacitor?.isNativePlatform()) {
+  const tipSection = document.getElementById('tip-section');
+  const tipButtons = document.getElementById('tip-buttons');
+  tipSection.classList.remove('hidden');
+  Capacitor.Plugins.TipPlugin.getProducts().then(({ products }) => {
+    products.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-modal';
+      btn.textContent = `${p.displayName.toUpperCase()} — ${p.displayPrice}`;
+      btn.addEventListener('click', async () => {
+        const original = btn.textContent;
+        btn.textContent = '...';
+        btn.disabled = true;
+        try {
+          const { status } = await Capacitor.Plugins.TipPlugin.purchase({ productId: p.id });
+          btn.textContent = status === 'success' ? 'THANK YOU! ♥' : original;
+          if (status === 'success') setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
+          else btn.disabled = false;
+        } catch {
+          btn.textContent = original;
+          btn.disabled = false;
+        }
+      });
+      tipButtons.appendChild(btn);
+    });
+  }).catch(() => { tipSection.classList.add('hidden'); });
+}
+
 document.getElementById('add-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   const opening = addPanel.classList.contains('hidden');
