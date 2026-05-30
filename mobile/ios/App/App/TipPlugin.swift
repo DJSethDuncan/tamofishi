@@ -18,6 +18,21 @@ public class TipPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "purchase",    returnType: CAPPluginReturnPromise),
     ]
 
+    private var updatesTask: Task<Void, Never>?
+
+    override public func load() {
+        updatesTask = Task {
+            for await result in Transaction.updates {
+                switch result {
+                case .verified(let transaction): await transaction.finish()
+                case .unverified(let transaction, _): await transaction.finish()
+                }
+            }
+        }
+    }
+
+    deinit { updatesTask?.cancel() }
+
     @objc func getProducts(_ call: CAPPluginCall) {
         Task {
             do {
