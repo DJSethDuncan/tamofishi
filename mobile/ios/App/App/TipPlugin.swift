@@ -52,7 +52,7 @@ public class TipPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("productId required")
             return
         }
-        Task {
+        Task { @MainActor in
             do {
                 guard let product = try await Product.products(for: [productId]).first else {
                     call.reject("Product not found")
