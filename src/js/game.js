@@ -209,39 +209,6 @@ document.getElementById('clear').addEventListener('click', () => {
   settingsModal.classList.add('hidden');
 });
 
-if (window.Capacitor?.isNativePlatform()) {
-  document.getElementById('tip-section').classList.remove('hidden');
-  const tipButtons = document.getElementById('tip-buttons');
-  [
-    { label: '$1 TIP', id: 'com.djsethduncan.tamofishi.tip.small' },
-    { label: '$5 TIP', id: 'com.djsethduncan.tamofishi.tip.medium' },
-    { label: '$10 TIP', id: 'com.djsethduncan.tamofishi.tip.large' },
-  ].forEach(tip => {
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-modal';
-    btn.textContent = tip.label;
-    btn.addEventListener('click', async () => {
-      if (!Capacitor.Plugins.TipPlugin) return;
-      const original = btn.textContent;
-      btn.textContent = '...';
-      btn.disabled = true;
-      try {
-        const { status } = await Capacitor.Plugins.TipPlugin.purchase({ productId: tip.id });
-        if (status === 'success') {
-          btn.textContent = 'THANK YOU! ♥';
-          setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 3000);
-        } else {
-          btn.textContent = original;
-          btn.disabled = false;
-        }
-      } catch {
-        btn.textContent = original;
-        btn.disabled = false;
-      }
-    });
-    tipButtons.appendChild(btn);
-  });
-}
 
 document.getElementById('add-btn').addEventListener('click', (e) => {
   e.stopPropagation();
