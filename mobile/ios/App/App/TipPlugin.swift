@@ -52,6 +52,10 @@ public class TipPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("productId required")
             return
         }
+        guard tipProductIds.contains(productId) else {
+            call.reject("Invalid product")
+            return
+        }
         Task { @MainActor in
             do {
                 guard let product = try await Product.products(for: [productId]).first else {
