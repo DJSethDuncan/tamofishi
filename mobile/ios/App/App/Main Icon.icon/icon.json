@@ -1,0 +1,32 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.00000,0.00000,0.00000,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "hidden" : true,
+          "image-name" : "ios-icon-1024-1024-transparent.png",
+          "name" : "ios-icon-1024-1024-transparent"
+        },
+        {
+          "hidden" : false,
+          "image-name" : "ios-icon-1024-1024.png",
+          "name" : "ios-icon-1024-1024"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
