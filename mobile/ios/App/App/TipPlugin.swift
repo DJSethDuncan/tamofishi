@@ -68,7 +68,8 @@ public class TipPlugin: CAPPlugin, CAPBridgedPlugin {
                     case .verified(let transaction):
                         await transaction.finish()
                         call.resolve(["status": "success"])
-                    case .unverified(_, let error):
+                    case .unverified(let transaction, let error):
+                        await transaction.finish()
                         call.reject("Purchase unverified", nil, error)
                     }
                 case .pending:
