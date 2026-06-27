@@ -11,8 +11,8 @@
 }
 
 #icon-buttons {
-  top: 15px;
-  right: 15px;
+  top: calc(15px + env(safe-area-inset-top));
+  right: calc(15px + env(safe-area-inset-right));
   transform: none;
   flex-direction: column;
 }

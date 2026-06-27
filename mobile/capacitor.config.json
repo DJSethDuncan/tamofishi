@@ -4,5 +4,10 @@
   "webDir": "www",
   "server": {
     "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "backgroundColor": "#0a0a0a"
   }
 }
