@@ -34,6 +34,7 @@ const loadState = async () => {
       if (s.type === 'plant') entities.push(createPlant(TANK, s.x, s.size));
       if (s.type === 'rock') entities.push(createRock(TANK, s.x, s.size));
       if (s.type === 'treasure-chest') entities.push(createTreasureChest(TANK, s.x));
+      if (s.type === 'bubbler-rock') entities.push(createBubblerRock(TANK, s.x));
     });
   } else {
     for (let i = 0; i < 6; i++) { const f = createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)); f.age = 3600; entities.push(f); }
@@ -71,6 +72,7 @@ const SPAWNERS = {
   'rock-medium': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'medium'),
   'rock-tall': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'tall'),
   'treasure-chest': () => createTreasureChest(TANK, TANK.x1 + 8 + Math.random() * (TANK.x2 - TANK.x1 - 16)),
+  'bubbler-rock': () => createBubblerRock(TANK, TANK.x1 + 8 + Math.random() * (TANK.x2 - TANK.x1 - 16)),
 };
 
 const canvasToTank = (e) => {
@@ -85,7 +87,7 @@ canvas.addEventListener('mousemove', (e) => {
   cursor.x = p.x; cursor.y = p.y;
   if (dragged) {
     dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
-    if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
+    if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest' && dragged.type !== 'bubbler-rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
   }
 });
 canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; if (dragged) { dragged.dragged = false; dragged = null; } });
@@ -94,7 +96,7 @@ canvas.addEventListener('mousedown', (e) => {
   if (murderMode) return;
   const { x: tx, y: ty } = canvasToTank(e);
   const hit = entities.find(ent =>
-    (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest') && Math.hypot(ent.x - tx, ent.y - ty) < 3
+    (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - tx, ent.y - ty) < 3
   );
   if (hit) {
     dragged = hit;
@@ -118,7 +120,7 @@ const handleTap = (tx, ty) => {
       shockwaves.push({ x: hit.x, y: hit.y, r: 0, life: 1 });
       hit.dead = 900;
       const floatSpeed = hit.type === 'fish' ? 20 : 10;
-      const flipped = hit.type !== 'plant' && hit.type !== 'rock' && hit.type !== 'duckweed' && hit.type !== 'treasure-chest';
+      const flipped = hit.type !== 'plant' && hit.type !== 'rock' && hit.type !== 'duckweed' && hit.type !== 'treasure-chest' && hit.type !== 'bubbler-rock';
       hit.update = (dt) => {
         hit.dead -= dt;
         if (hit.y > TANK.y1 + 2) hit.y -= dt * floatSpeed;
@@ -156,7 +158,7 @@ canvas.addEventListener('touchstart', (e) => {
   cursor.x = p.x; cursor.y = p.y;
   if (murderMode) return;
   const hit = entities.find(ent =>
-    (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest') && Math.hypot(ent.x - p.x, ent.y - p.y) < 3
+    (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - p.x, ent.y - p.y) < 3
   );
   if (hit) {
     dragged = hit;
@@ -171,7 +173,7 @@ canvas.addEventListener('touchmove', (e) => {
   cursor.x = p.x; cursor.y = p.y;
   if (dragged) {
     dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
-    if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
+    if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest' && dragged.type !== 'bubbler-rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
   }
 }, { passive: false });
 
@@ -353,6 +355,13 @@ const ICONS = {
     c.fillStyle='rgb(60,190,60)'; c.fillRect(2,3,2,1);
     c.fillStyle='rgb(45,140,45)'; c.fillRect(0,5,6,1);
   },
+  'bubbler-rock': (c) => {
+    // Rounded mound with a lighter limestone tint + a tiny bubble rising from the top
+    c.fillStyle='rgb(26,52,32)'; c.fillRect(0,5,6,1);
+    c.fillStyle='rgb(30,60,36)'; c.fillRect(1,4,4,1);
+    c.fillStyle='rgb(34,68,41)'; c.fillRect(2,3,2,1);
+    c.fillStyle='rgb(70,140,84)'; c.fillRect(3,1,1,1); // bubble
+  },
 };
 document.querySelectorAll('.icon').forEach(el => {
   el.width = 6; el.height = 6;
@@ -392,10 +401,11 @@ function loop(now) {
   drawTank();
   entities.filter(e => e.type === 'rock').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'treasure-chest').forEach(e => e.draw(ctx));
+  entities.filter(e => e.type === 'bubbler-rock').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'plant').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'duckweed').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'flake').forEach(e => e.draw(ctx));
-  entities.filter(e => e.type !== 'flake' && e.type !== 'plant' && e.type !== 'rock' && e.type !== 'duckweed' && e.type !== 'treasure-chest' && e.type !== 'bubble').forEach(e => e.draw(ctx));
+  entities.filter(e => e.type !== 'flake' && e.type !== 'plant' && e.type !== 'rock' && e.type !== 'duckweed' && e.type !== 'treasure-chest' && e.type !== 'bubbler-rock' && e.type !== 'bubble').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'bubble').forEach(e => e.draw(ctx));
   // Shockwaves
   for (let i = shockwaves.length - 1; i >= 0; i--) {
