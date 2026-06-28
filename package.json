@@ -7,7 +7,8 @@
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:all": "electron-builder --mac --win",
-    "build:mobile": "rm -rf mobile/www && mkdir -p mobile/www && cp index.html mobile/www/ && cp -r src mobile/www/src && cp mobile/mobile.css mobile/www/ && sed -i '' 's|</head>|  <link rel=\"stylesheet\" href=\"mobile.css\">\\n</head>|' mobile/www/index.html"
+    "build:mobile": "rm -rf mobile/www && mkdir -p mobile/www && cp index.html mobile/www/ && cp -r src mobile/www/src && cp mobile/mobile.css mobile/www/ && sed -i '' 's|</head>|  <link rel=\"stylesheet\" href=\"mobile.css\">\\n</head>|' mobile/www/index.html",
+    "test": "vitest run"
   },
   "build": {
     "appId": "com.djsethduncan.tamofishi",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "electron": "^35.0.0",
     "electron-builder": "^26.0.0",
-    "electron-reloader": "^1.2.3"
+    "electron-reloader": "^1.2.3",
+    "vitest": "^4.1.9"
   }
 }
