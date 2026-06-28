@@ -1,9 +1,17 @@
+// Small: 2×2 block. Medium: 5-pixel plus (pixel-round). Indexed by size slot.
+const BUBBLE_SIZES = [
+  [[0, 0], [1, 0], [0, -1], [1, -1]],         // small
+  [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], // medium
+];
+
 const createBubble = (tank, startX, startY) => {
+  const offsets = BUBBLE_SIZES[Math.random() < 0.55 ? 0 : 1];
   const b = {
     type: 'bubble',
     x: startX,
     y: startY,
     eaten: false,
+    offsets,
     phase: Math.random() * Math.PI * 2,
     speed: 3 + Math.random() * 2,
     driftAmp: 0.3 + Math.random() * 0.3,
@@ -22,7 +30,11 @@ const createBubble = (tank, startX, startY) => {
   b.draw = (ctx) => {
     ctx.globalAlpha = 0.65;
     ctx.fillStyle = '#33ff33';
-    ctx.fillRect(Math.round(b.x), Math.round(b.y), 1, 1);
+    const bx = Math.round(b.x);
+    const by = Math.round(b.y);
+    for (const [ox, oy] of b.offsets) {
+      ctx.fillRect(bx + ox, by + oy, 1, 1);
+    }
     ctx.globalAlpha = 1;
   };
 
@@ -58,18 +70,38 @@ const createTreasureChest = (tank, x) => {
     type: 'treasure-chest',
     x, y: FLOOR,
     dragged: false,
-    _timer: 0,
-    _next: 1.5 + Math.random() * 2,
+    // Build-up timer: counts toward the next burst
+    _buildTimer: 0,
+    _buildNext: 4 + Math.random() * 4, // 4–8 s between bursts
+    // Burst state: emits _burstRemain bubbles, one every _burstInterval seconds
+    _burstRemain: 0,
+    _burstTimer: 0,
+    _burstInterval: 0,
   };
 
   chest.update = (dt, entities) => {
     if (chest.dragged) return;
-    chest._timer += dt;
-    if (chest._timer >= chest._next) {
-      chest._timer = 0;
-      chest._next = 1.5 + Math.random() * 2;
-      const bx = chest.x + (Math.random() - 0.5) * 4;
-      entities.push(createBubble(tank, bx, FLOOR - CHEST_HEIGHT - 1));
+
+    if (chest._burstRemain > 0) {
+      // Mid-burst: fire one bubble per interval until burst is exhausted
+      chest._burstTimer += dt;
+      if (chest._burstTimer >= chest._burstInterval) {
+        chest._burstTimer -= chest._burstInterval;
+        const bx = chest.x + (Math.random() - 0.5) * 4;
+        entities.push(createBubble(tank, bx, FLOOR - CHEST_HEIGHT - 1));
+        chest._burstRemain--;
+      }
+    } else {
+      // Between bursts: wait for pressure to build
+      chest._buildTimer += dt;
+      if (chest._buildTimer >= chest._buildNext) {
+        chest._buildTimer = 0;
+        chest._buildNext = 4 + Math.random() * 4;
+        chest._burstRemain = 3 + Math.floor(Math.random() * 4); // 3–6 bubbles
+        chest._burstInterval = 0.12 + Math.random() * 0.1;      // ~0.12–0.22 s apart
+        // Prime the timer so the first bubble fires at the start of the next update
+        chest._burstTimer = chest._burstInterval;
+      }
     }
   };
 
