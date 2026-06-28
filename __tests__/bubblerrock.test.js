@@ -1,0 +1,124 @@
+import { describe, test, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+import { createContext, runInContext } from 'vm'
+
+const __dir = dirname(fileURLToPath(import.meta.url))
+
+function loadEntity(file, fixedRandom) {
+  const m = fixedRandom !== undefined
+    ? Object.create(Math, { random: { value: () => fixedRandom, writable: true, enumerable: true, configurable: true } })
+    : Math
+  const ctx = createContext({ Math: m })
+  const code = readFileSync(join(__dir, '../src/js/entities', file), 'utf8')
+  runInContext(code.replace(/\bconst\b/g, 'var'), ctx)
+  return ctx
+}
+
+const makeTank = () => ({ x1: 2, y1: 2, x2: 177, y2: 55 })
+
+describe('createBubblerRock', () => {
+  test('type is bubbler-rock', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    expect(br.type).toBe('bubbler-rock')
+  })
+
+  test('anchored at tank floor', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    expect(br.y).toBe(tank.y2)
+  })
+
+  test('surfaceAt returns peak height at centre column', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    // Centre column (col=0) has BUBBLER_COLS[5]=5 → surface at FLOOR-5
+    expect(br.surfaceAt(90)).toBe(tank.y2 - 5)
+  })
+
+  test('surfaceAt returns null outside the mound', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    expect(br.surfaceAt(90 - 10)).toBeNull()
+    expect(br.surfaceAt(90 + 10)).toBeNull()
+  })
+
+  test('does not emit bubble while dragged', () => {
+    const ctx = loadEntity('bubblerrock.js', 0)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br.dragged = true
+    br._timer = 999
+    const entities = []
+    br.update(10, entities)
+    expect(entities.length).toBe(0)
+  })
+
+  test('emits a bubble when timer fires', () => {
+    const ctx = loadEntity('bubblerrock.js', 0)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br._next = 0.5
+    const entities = []
+    br.update(1, entities)
+    expect(entities.length).toBeGreaterThan(0)
+    expect(entities[0].type).toBe('bubble')
+  })
+
+  test('timer resets to 0 after emitting', () => {
+    const ctx = loadEntity('bubblerrock.js', 0)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br._next = 0.1
+    const entities = []
+    br.update(0.2, entities)
+    expect(br._timer).toBe(0)
+  })
+})
+
+describe('createMeanderingBubble (via update)', () => {
+  test('bubble rises over time', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br._next = 0.1
+    const entities = []
+    br.update(0.5, entities)
+    const bubble = entities[0]
+    const startY = bubble.y
+    bubble.update(0.1)
+    expect(bubble.y).toBeLessThan(startY)
+  })
+
+  test('bubble expires when it reaches the surface', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br._next = 0.1
+    const entities = []
+    br.update(0.5, entities)
+    const bubble = entities[0]
+    bubble.y = tank.y1 + 1
+    bubble.update(1)
+    expect(bubble.eaten).toBe(true)
+  })
+
+  test('bubble is clamped within tank horizontal bounds', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br._next = 0.1
+    const entities = []
+    br.update(0.5, entities)
+    const bubble = entities[0]
+    bubble.x = tank.x1 - 10
+    bubble.update(0.1)
+    expect(bubble.x).toBeGreaterThanOrEqual(tank.x1 + 1)
+  })
+})
