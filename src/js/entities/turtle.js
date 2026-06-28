@@ -31,10 +31,19 @@ const createTurtle = (tank, x, y) => {
     return best;
   };
 
+  const CRAB_EAT_COOLDOWN = 20;
+
   const chasePrey = (entities) => {
     const dx = t.target.x - t.x, dy = t.target.y - t.y;
     const d = Math.hypot(dx, dy);
-    if (d < EAT_DIST) { entities.splice(entities.indexOf(t.target), 1); t.target = null; t.idle = FEED_COOLDOWN; t.vx = 0; return; }
+    if (d < EAT_DIST) {
+      const wasCrab = t.target.type === 'crab';
+      entities.splice(entities.indexOf(t.target), 1);
+      t.target = null;
+      t.idle = wasCrab ? CRAB_EAT_COOLDOWN : FEED_COOLDOWN;
+      t.vx = 0;
+      return;
+    }
     t.vx = (dx / d) * 0.07;
     t.vy = (dy / d) * 0.07;
   };
@@ -50,6 +59,10 @@ const createTurtle = (tank, x, y) => {
       const r = Math.random();
       if (r < 0.1) startPanic(t);
       else if (r < 0.5) { t.vy = -(0.1 + Math.random() * 0.08); t.vx = (Math.random() - 0.5) * 0.1; }
+    }
+    if (!t.panic) {
+      const nearbyCrabs = entities.filter(e => e.type === 'crab' && !e.eaten && Math.hypot(e.x - t.x, e.y - t.y) < 8).length;
+      if (nearbyCrabs >= 2) startPanic(t);
     }
     if (updatePanic(t, dt)) { t.x += t.vx; t.y += t.vy; }
     else {
