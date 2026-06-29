@@ -70,7 +70,7 @@ const createBubblerRock = (tank, x) => {
     if (br._timer >= br._next) {
       br._timer = 0;
       br._next = 1 + Math.random() * 1.5;
-      const ventCol = Math.floor((Math.random() - 0.5) * 6);
+      const ventCol = Math.floor(Math.random() * 9) - 4;
       const ventH = BUBBLER_COLS[Math.max(0, Math.min(BUBBLER_COLS.length - 1, ventCol + BUBBLER_HALFBASE))] || 1;
       entities.push(createMeanderingBubble(tank, br.x + ventCol + (Math.random() - 0.5), FLOOR - ventH - 1));
     }

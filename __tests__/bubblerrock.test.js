@@ -80,6 +80,29 @@ describe('createBubblerRock', () => {
     br.update(0.2, entities)
     expect(br._timer).toBe(0)
   })
+
+  test('bubbles emerge from both sides of the rock center', () => {
+    // ventCol must cover -4..+4 symmetrically. The old formula
+    // (Math.floor((Math.random()-0.5)*6)) gave -3..+2, silently skipping
+    // the right half of the mound (columns +3, +4).
+    const ctx = loadEntity('bubblerrock.js')
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    const leftXs = [], rightXs = []
+    for (let i = 0; i < 500; i++) {
+      const entities = []
+      br._timer = 999; br._next = 0.1
+      br.update(1, entities)
+      if (entities.length > 0) {
+        const bx = entities[0].x
+        if (bx < 90) leftXs.push(bx)
+        else if (bx > 90) rightXs.push(bx)
+      }
+    }
+    // Both sides of the rock must produce bubbles
+    expect(leftXs.length).toBeGreaterThan(0)
+    expect(rightXs.length).toBeGreaterThan(0)
+  })
 })
 
 describe('createMeanderingBubble (via update)', () => {
