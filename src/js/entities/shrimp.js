@@ -91,6 +91,8 @@ const createShrimp = (tank, x, y) => {
     } else if (sh.idle > 0) {
       sh.idle -= dt;
       sh.vx = 0; sh.vy = 0;
+    } else if (fleeCursor(sh, 0.2)) {
+      sh.goalX = undefined; sh.goalY = undefined; sh.target = null;
     } else if (sh.target) {
       // Chase flake
       if (tryEat(sh)) { sh.vx = 0; sh.vy = 0; }

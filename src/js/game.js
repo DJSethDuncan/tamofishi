@@ -119,6 +119,9 @@ const handleTap = (tx, ty) => {
     if (hit) {
       shockwaves.push({ x: hit.x, y: hit.y, r: 0, life: 1 });
       hit.dead = 900;
+      entities.forEach(e => {
+        if (e !== hit && e.panic !== undefined && Math.hypot(e.x - hit.x, e.y - hit.y) < 15) startPanic(e);
+      });
       const floatSpeed = hit.type === 'fish' ? 20 : 10;
       const flipped = hit.type !== 'plant' && hit.type !== 'rock' && hit.type !== 'duckweed' && hit.type !== 'treasure-chest' && hit.type !== 'bubbler-rock';
       hit.update = (dt) => {
