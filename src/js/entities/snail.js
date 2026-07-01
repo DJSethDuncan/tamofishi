@@ -79,6 +79,8 @@ const createSnail = (tank, x, y) => {
     } else if (s.idle > 0) {
       s.idle -= dt;
       s.vx = 0; s.vy = 0;
+    } else if (fleeCursor(s, 0.1)) {
+      s.goalX = undefined; s.goalY = undefined; s.target = null;
     } else if (s.target) {
       chaseFood();
     } else if (s.goalX !== undefined) {

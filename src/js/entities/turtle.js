@@ -83,7 +83,8 @@ const createTurtle = (tank, x, y) => {
         else if (r < 0.04) { t.vy = (Math.random() < 0.6 ? -1 : 1) * (0.03 + Math.random() * 0.05); t.idle = 0.5 + Math.random() * 1.5; }
         else if (r < 0.06) { t.vy = 0; t.idle = 1 + Math.random() * 3; }
       } else if (onFloor(entities)) {
-        if (t.strollTo >= 0) {
+        if (fleeCursor(t, 0.25)) { t.strollTo = -1; }
+        else if (t.strollTo >= 0) {
           const dx = t.strollTo - t.x;
           if (Math.abs(dx) < 1) { t.strollTo = -1; t.vx = 0; t.idle = 0.3 + Math.random() * 1; }
           else t.vx = Math.sign(dx) * 0.03;
