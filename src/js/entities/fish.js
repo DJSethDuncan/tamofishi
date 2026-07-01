@@ -50,7 +50,8 @@ const createFish = (tank, x, y) => {
   };
 
   const chaseFood = () => {
-    if (tryEat(f)) { fed(); return; }
+    const isBubble = f.target && f.target.type === 'bubble';
+    if (tryEat(f)) { if (!isBubble) fed(); return; }
     const dx = f.target.x - f.x, dy = f.target.y - f.y;
     const d = Math.hypot(dx, dy);
     f.x += (dx / d) * 0.18;
