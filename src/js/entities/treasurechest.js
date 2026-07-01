@@ -70,6 +70,7 @@ const createTreasureChest = (tank, x) => {
     type: 'treasure-chest',
     x, y: FLOOR,
     dragged: false,
+    intensity: 1.0,
     // Build-up timer: counts toward the next burst
     _buildTimer: 0,
     _buildNext: 4 + Math.random() * 4, // 4–8 s between bursts
@@ -96,8 +97,8 @@ const createTreasureChest = (tank, x) => {
       chest._buildTimer += dt;
       if (chest._buildTimer >= chest._buildNext) {
         chest._buildTimer = 0;
-        chest._buildNext = 4 + Math.random() * 4;
-        chest._burstRemain = 3 + Math.floor(Math.random() * 4); // 3–6 bubbles
+        chest._buildNext = (4 + Math.random() * 4) / chest.intensity;
+        chest._burstRemain = Math.max(1, Math.round((3 + Math.floor(Math.random() * 4)) * chest.intensity));
         chest._burstInterval = 0.12 + Math.random() * 0.1;      // ~0.12–0.22 s apart
         // Prime the timer so the first bubble fires at the start of the next update
         chest._burstTimer = chest._burstInterval;

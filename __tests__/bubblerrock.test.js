@@ -103,6 +103,36 @@ describe('createBubblerRock', () => {
     expect(leftXs.length).toBeGreaterThan(0)
     expect(rightXs.length).toBeGreaterThan(0)
   })
+
+  test('default intensity is 1.0', () => {
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const br = ctx.createBubblerRock(makeTank(), 90)
+    expect(br.intensity).toBe(1.0)
+  })
+
+  test('higher intensity produces shorter _next interval on average', () => {
+    // Run many emissions at intensity 2.0 and 0.5; 2× intensity should halve the interval.
+    const ctx = loadEntity('bubblerrock.js', 0)
+    const tank = makeTank()
+    const brFast = ctx.createBubblerRock(tank, 90)
+    brFast.intensity = 2.0
+    const brSlow = ctx.createBubblerRock(tank, 90)
+    brSlow.intensity = 0.5
+
+    const nexts = (br) => {
+      const vals = []
+      for (let i = 0; i < 20; i++) {
+        br._timer = 999; br._next = 0.1
+        br.update(1, [])
+        vals.push(br._next)
+        br._timer = 0
+      }
+      return vals.reduce((a, v) => a + v, 0) / vals.length
+    }
+
+    // At intensity 2× the formula divides by 2, so _next should be ~half
+    expect(nexts(brFast)).toBeLessThan(nexts(brSlow))
+  })
 })
 
 describe('createMeanderingBubble (via update)', () => {
