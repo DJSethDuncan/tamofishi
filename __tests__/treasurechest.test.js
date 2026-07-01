@@ -169,4 +169,53 @@ describe('createTreasureChest', () => {
     chest.update(0.05, [chest, fish])
     expect(panicCalled).toBe(true)
   })
+
+  test('default intensity is 1.0', () => {
+    const ctx = loadEntity('treasurechest.js', 0.5)
+    const chest = ctx.createTreasureChest(makeTank(), 90)
+    expect(chest.intensity).toBe(1.0)
+  })
+
+  test('higher intensity produces shorter build intervals', () => {
+    // At intensity 2.0 the formula divides _buildNext by 2, so intervals are shorter on average.
+    const ctx = loadEntity('treasurechest.js', 0)
+    const tank = makeTank()
+    const chestFast = ctx.createTreasureChest(tank, 90)
+    chestFast.intensity = 2.0
+    const chestSlow = ctx.createTreasureChest(tank, 90)
+    chestSlow.intensity = 0.5
+
+    const avgBuildNext = (chest) => {
+      const vals = []
+      for (let i = 0; i < 20; i++) {
+        chest._buildTimer = chest._buildNext - 0.001
+        chest.update(0.01, [])
+        vals.push(chest._buildNext)
+        chest._burstRemain = 0
+        chest._buildTimer = 0
+      }
+      return vals.reduce((a, v) => a + v, 0) / vals.length
+    }
+
+    expect(avgBuildNext(chestFast)).toBeLessThan(avgBuildNext(chestSlow))
+  })
+
+  test('higher intensity produces more bubbles per burst', () => {
+    // At intensity 2.0, _burstRemain is multiplied by 2, so each burst is bigger.
+    const ctx = loadEntity('treasurechest.js', 0)
+    const tank = makeTank()
+    const chestFast = ctx.createTreasureChest(tank, 90)
+    chestFast.intensity = 2.0
+    chestFast._buildTimer = chestFast._buildNext - 0.001
+    chestFast.update(0.01, [])
+    const fastBurst = chestFast._burstRemain
+
+    const chestSlow = ctx.createTreasureChest(tank, 90)
+    chestSlow.intensity = 0.5
+    chestSlow._buildTimer = chestSlow._buildNext - 0.001
+    chestSlow.update(0.01, [])
+    const slowBurst = chestSlow._burstRemain
+
+    expect(fastBurst).toBeGreaterThan(slowBurst)
+  })
 })
