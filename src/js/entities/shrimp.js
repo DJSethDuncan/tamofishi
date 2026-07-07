@@ -23,7 +23,7 @@ const createShrimp = (tank, x, y) => {
   const findPlantAt = (entities) => {
     for (const e of entities) {
       if (e.type !== 'plant') continue;
-      if (Math.abs(Math.round(sh.x) - Math.round(e.x)) < 2 && sh.y < FLOOR) return e;
+      if (Math.abs(Math.round(sh.x) - Math.round(e.x)) < 2 && sh.y <= FLOOR) return e;
     }
     return null;
   };

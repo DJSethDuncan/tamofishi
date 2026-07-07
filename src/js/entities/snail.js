@@ -51,7 +51,7 @@ const createSnail = (tank, x, y) => {
   const findPlantAt = (entities) => {
     for (const e of entities) {
       if (e.type !== 'plant') continue;
-      if (Math.abs(Math.round(s.x) - Math.round(e.x)) < 2 && s.y < FLOOR && s.y >= FLOOR - 20) return e;
+      if (Math.abs(Math.round(s.x) - Math.round(e.x)) < 2 && s.y <= FLOOR && s.y >= FLOOR - 20) return e;
     }
     return null;
   };
