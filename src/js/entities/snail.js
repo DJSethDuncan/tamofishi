@@ -51,7 +51,7 @@ const createSnail = (tank, x, y) => {
   const findPlantAt = (entities) => {
     for (const e of entities) {
       if (e.type !== 'plant') continue;
-      if (Math.abs(Math.round(s.x) - Math.round(e.x)) < 2 && s.y < FLOOR && s.y >= FLOOR - 20) return e;
+      if (Math.abs(Math.round(s.x) - Math.round(e.x)) < 2 && s.y <= FLOOR && s.y >= FLOOR - 20) return e;
     }
     return null;
   };
@@ -79,6 +79,8 @@ const createSnail = (tank, x, y) => {
     } else if (s.idle > 0) {
       s.idle -= dt;
       s.vx = 0; s.vy = 0;
+    } else if (fleeCursor(s, 0.1)) {
+      s.goalX = undefined; s.goalY = undefined; s.target = null;
     } else if (s.target) {
       chaseFood();
     } else if (s.goalX !== undefined) {

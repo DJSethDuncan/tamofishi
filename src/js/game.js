@@ -15,7 +15,7 @@ const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
 
 const entities = [];
 
-const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size, phase: e.phase });
+const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size, phase: e.phase, intensity: e.intensity });
 
 const saveState = () => {
   tank.save(entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity));
@@ -33,8 +33,8 @@ const loadState = async () => {
       if (s.type === 'duckweed') entities.push(createDuckweed(TANK, s.x));
       if (s.type === 'plant') entities.push(createPlant(TANK, s.x, s.size));
       if (s.type === 'rock') entities.push(createRock(TANK, s.x, s.size));
-      if (s.type === 'treasure-chest') entities.push(createTreasureChest(TANK, s.x));
-      if (s.type === 'bubbler-rock') entities.push(createBubblerRock(TANK, s.x));
+      if (s.type === 'treasure-chest') { const tc = createTreasureChest(TANK, s.x); if (s.intensity) tc.intensity = s.intensity; entities.push(tc); }
+      if (s.type === 'bubbler-rock') { const br = createBubblerRock(TANK, s.x); if (s.intensity) br.intensity = s.intensity; entities.push(br); }
     });
   } else {
     for (let i = 0; i < 6; i++) { const f = createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)); f.age = 3600; entities.push(f); }
@@ -82,10 +82,50 @@ const canvasToTank = (e) => {
 
 let dragged = null;
 
+// Intensity slider (long-press on bubbler-rock or treasure-chest)
+const intensityPopup = document.getElementById('intensity-popup');
+const intensityRange = document.getElementById('intensity-range');
+let intensityTarget = null;
+let longPressTimer = null;
+const LONG_PRESS_MS = 500;
+
+const sliderToIntensity = (v) => v / 5;
+const intensityToSlider = (i) => Math.round(i * 5);
+
+const showIntensitySlider = (entity) => {
+  intensityTarget = entity;
+  intensityRange.value = intensityToSlider(entity.intensity);
+  const wrap = document.getElementById('tank-wrap');
+  const wRect = wrap.getBoundingClientRect();
+  const left = (entity.x / W) * wRect.width;
+  const pxLeft = Math.max(4, Math.min(wRect.width - 60, left - 20));
+  const pxBottom = wRect.height * (1 - entity.y / H) + 8;
+  intensityPopup.style.left = `${pxLeft}px`;
+  intensityPopup.style.bottom = `${pxBottom}px`;
+  intensityPopup.style.top = '';
+  intensityPopup.classList.remove('hidden');
+};
+
+const hideIntensitySlider = () => {
+  intensityPopup.classList.add('hidden');
+  intensityTarget = null;
+};
+
+intensityRange.addEventListener('input', () => {
+  if (intensityTarget) intensityTarget.intensity = sliderToIntensity(Number(intensityRange.value));
+});
+
+document.addEventListener('pointerdown', (e) => {
+  if (!intensityPopup.classList.contains('hidden') && !intensityPopup.contains(e.target) && e.target !== canvas) {
+    hideIntensitySlider();
+  }
+});
+
 canvas.addEventListener('mousemove', (e) => {
   const p = canvasToTank(e);
   cursor.x = p.x; cursor.y = p.y;
   if (dragged) {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
     if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest' && dragged.type !== 'bubbler-rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
   }
@@ -93,12 +133,20 @@ canvas.addEventListener('mousemove', (e) => {
 canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; if (dragged) { dragged.dragged = false; dragged = null; } });
 
 canvas.addEventListener('mousedown', (e) => {
-  if (murderMode) return;
+  if (murderMode || pruneMode) return;
+  hideIntensitySlider();
   const { x: tx, y: ty } = canvasToTank(e);
   const hit = entities.find(ent =>
     (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - tx, ent.y - ty) < 3
   );
   if (hit) {
+    if (hit.type === 'bubbler-rock' || hit.type === 'treasure-chest') {
+      longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        if (dragged === hit) { dragged.dragged = false; dragged = null; }
+        showIntensitySlider(hit);
+      }, LONG_PRESS_MS);
+    }
     dragged = hit;
     hit.dragged = true;
     if (hit.type === 'snail' || hit.type === 'turtle') { hit.vx = 0; hit.vy = 0; hit.target = null; hit.goalX = undefined; hit.goalY = undefined; }
@@ -106,6 +154,7 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 canvas.addEventListener('mouseup', () => {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
   if (dragged) {
     dragged.dragged = false;
     if (dragged.type === 'snail' || dragged.type === 'turtle') dragged.idle = 2 + Math.random() * 4;
@@ -114,11 +163,29 @@ canvas.addEventListener('mouseup', () => {
 });
 
 const handleTap = (tx, ty) => {
+  if (pruneMode) {
+    const hit = entities.find(ent => (ent.type === 'plant' || ent.type === 'duckweed') && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 4);
+    if (hit) {
+      const origDraw = hit.draw;
+      hit.dead = 1.5;
+      hit.update = (dt) => { hit.dead -= dt; };
+      hit.draw = (c) => {
+        c.globalAlpha = Math.max(0, hit.dead / 1.5);
+        origDraw(c);
+        c.globalAlpha = 1;
+      };
+      entities.forEach(e => { if (e.plant === hit) { e.plant = null; e.perched = false; } });
+    }
+    return;
+  }
   if (murderMode) {
     const hit = entities.find(ent => ent.type !== 'flake' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
     if (hit) {
       shockwaves.push({ x: hit.x, y: hit.y, r: 0, life: 1 });
       hit.dead = 900;
+      entities.forEach(e => {
+        if (e !== hit && e.panic !== undefined && Math.hypot(e.x - hit.x, e.y - hit.y) < 15) startPanic(e);
+      });
       const floatSpeed = hit.type === 'fish' ? 20 : 10;
       const flipped = hit.type !== 'plant' && hit.type !== 'rock' && hit.type !== 'duckweed' && hit.type !== 'treasure-chest' && hit.type !== 'bubbler-rock';
       hit.update = (dt) => {
@@ -156,11 +223,19 @@ canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   const p = canvasToTank(e.touches[0]);
   cursor.x = p.x; cursor.y = p.y;
-  if (murderMode) return;
+  if (murderMode || pruneMode) return;
+  hideIntensitySlider();
   const hit = entities.find(ent =>
     (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - p.x, ent.y - p.y) < 3
   );
   if (hit) {
+    if (hit.type === 'bubbler-rock' || hit.type === 'treasure-chest') {
+      longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        if (dragged === hit) { dragged.dragged = false; dragged = null; }
+        showIntensitySlider(hit);
+      }, LONG_PRESS_MS);
+    }
     dragged = hit;
     hit.dragged = true;
     if (hit.type === 'snail' || hit.type === 'turtle') { hit.vx = 0; hit.vy = 0; hit.target = null; hit.goalX = undefined; hit.goalY = undefined; }
@@ -172,6 +247,7 @@ canvas.addEventListener('touchmove', (e) => {
   const p = canvasToTank(e.touches[0]);
   cursor.x = p.x; cursor.y = p.y;
   if (dragged) {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
     if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest' && dragged.type !== 'bubbler-rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
   }
@@ -180,6 +256,7 @@ canvas.addEventListener('touchmove', (e) => {
 canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   const p = canvasToTank(e.changedTouches[0]);
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
   if (dragged) {
     dragged.dragged = false;
     if (dragged.type === 'snail' || dragged.type === 'turtle') dragged.idle = 2 + Math.random() * 4;
@@ -192,10 +269,12 @@ canvas.addEventListener('touchend', (e) => {
 
 canvas.addEventListener('touchcancel', () => {
   cursor.x = -1; cursor.y = -1;
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
   if (dragged) { dragged.dragged = false; dragged = null; }
 });
 
 let murderMode = false;
+let pruneMode = false;
 
 // Generate knife cursor
 const knifeCursor = (() => {
@@ -211,6 +290,19 @@ const knifeCursor = (() => {
   kx.fillStyle = '#33ff33';
   [[3,3],[2,4],[4,2],[4,4]].forEach(([x,y]) => kx.fillRect(x*px, y*px, px, px));
   return `url(${kc.toDataURL()}) 0 0, crosshair`;
+})();
+
+// Generate scissors cursor
+const scissorsCursor = (() => {
+  const sc = document.createElement('canvas');
+  const px = 4;
+  sc.width = 5 * px; sc.height = 5 * px;
+  const sx = sc.getContext('2d');
+  sx.fillStyle = '#cccccc';
+  [[0,0],[1,1],[4,0],[3,1],[2,2]].forEach(([x,y]) => sx.fillRect(x*px, y*px, px, px));
+  sx.fillStyle = '#33ff33';
+  [[1,3],[0,4],[3,3],[4,4]].forEach(([x,y]) => sx.fillRect(x*px, y*px, px, px));
+  return `url(${sc.toDataURL()}) 0 0, crosshair`;
 })();
 
 const shockwaves = [];
@@ -230,8 +322,23 @@ canvas.style.cursor = arrowCursor;
 const setMurderMode = (on) => {
   murderMode = on;
   cursor.murder = on;
+  if (on) {
+    pruneMode = false;
+    document.getElementById('prune-btn').textContent = 'PRUNE';
+  }
   canvas.style.cursor = on ? knifeCursor : arrowCursor;
   document.getElementById('murder-btn').textContent = on ? 'STOP MURDER' : 'MURDER';
+};
+
+const setPruneMode = (on) => {
+  pruneMode = on;
+  if (on) {
+    murderMode = false;
+    cursor.murder = false;
+    document.getElementById('murder-btn').textContent = 'MURDER';
+  }
+  canvas.style.cursor = on ? scissorsCursor : arrowCursor;
+  document.getElementById('prune-btn').textContent = on ? 'STOP PRUNING' : 'PRUNE';
 };
 
 const settingsModal = document.getElementById('settings-modal');
@@ -251,6 +358,10 @@ document.getElementById('settings-close').addEventListener('click', () => settin
 settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
 document.getElementById('murder-btn').addEventListener('click', () => {
   setMurderMode(!murderMode);
+  settingsModal.classList.add('hidden');
+});
+document.getElementById('prune-btn').addEventListener('click', () => {
+  setPruneMode(!pruneMode);
   settingsModal.classList.add('hidden');
 });
 document.getElementById('clear').addEventListener('click', () => {
