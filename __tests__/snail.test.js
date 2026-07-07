@@ -22,6 +22,7 @@ function loadSnailCtx(fixedRandom = 0.5) {
   }
   run(join(__dir, '../src/js/behaviors/feeding.js'))
   run(join(__dir, '../src/js/behaviors/nudge.js'))
+  run(join(__dir, '../src/js/behaviors/cursor.js'))
   run(join(__dir, '../src/js/entities/snail.js'))
   return ctx
 }

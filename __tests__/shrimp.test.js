@@ -23,6 +23,7 @@ function loadShrimpCtx(fixedRandom = 0) {
   run(join(__dir, '../src/js/behaviors/feeding.js'))
   run(join(__dir, '../src/js/behaviors/panic.js'))
   run(join(__dir, '../src/js/behaviors/nudge.js'))
+  run(join(__dir, '../src/js/behaviors/cursor.js'))
   run(join(__dir, '../src/js/entities/shrimp.js'))
   return ctx
 }
