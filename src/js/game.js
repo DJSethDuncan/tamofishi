@@ -133,7 +133,7 @@ canvas.addEventListener('mousemove', (e) => {
 canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; if (dragged) { dragged.dragged = false; dragged = null; } });
 
 canvas.addEventListener('mousedown', (e) => {
-  if (murderMode) return;
+  if (murderMode || pruneMode) return;
   hideIntensitySlider();
   const { x: tx, y: ty } = canvasToTank(e);
   const hit = entities.find(ent =>
@@ -163,6 +163,21 @@ canvas.addEventListener('mouseup', () => {
 });
 
 const handleTap = (tx, ty) => {
+  if (pruneMode) {
+    const hit = entities.find(ent => (ent.type === 'plant' || ent.type === 'duckweed') && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 4);
+    if (hit) {
+      const origDraw = hit.draw;
+      hit.dead = 1.5;
+      hit.update = (dt) => { hit.dead -= dt; };
+      hit.draw = (c) => {
+        c.globalAlpha = Math.max(0, hit.dead / 1.5);
+        origDraw(c);
+        c.globalAlpha = 1;
+      };
+      entities.forEach(e => { if (e.plant === hit) { e.plant = null; e.perched = false; } });
+    }
+    return;
+  }
   if (murderMode) {
     const hit = entities.find(ent => ent.type !== 'flake' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
     if (hit) {
@@ -205,7 +220,7 @@ canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   const p = canvasToTank(e.touches[0]);
   cursor.x = p.x; cursor.y = p.y;
-  if (murderMode) return;
+  if (murderMode || pruneMode) return;
   hideIntensitySlider();
   const hit = entities.find(ent =>
     (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - p.x, ent.y - p.y) < 3
@@ -256,6 +271,7 @@ canvas.addEventListener('touchcancel', () => {
 });
 
 let murderMode = false;
+let pruneMode = false;
 
 // Generate knife cursor
 const knifeCursor = (() => {
@@ -271,6 +287,19 @@ const knifeCursor = (() => {
   kx.fillStyle = '#33ff33';
   [[3,3],[2,4],[4,2],[4,4]].forEach(([x,y]) => kx.fillRect(x*px, y*px, px, px));
   return `url(${kc.toDataURL()}) 0 0, crosshair`;
+})();
+
+// Generate scissors cursor
+const scissorsCursor = (() => {
+  const sc = document.createElement('canvas');
+  const px = 4;
+  sc.width = 5 * px; sc.height = 5 * px;
+  const sx = sc.getContext('2d');
+  sx.fillStyle = '#cccccc';
+  [[0,0],[1,1],[4,0],[3,1],[2,2]].forEach(([x,y]) => sx.fillRect(x*px, y*px, px, px));
+  sx.fillStyle = '#33ff33';
+  [[1,3],[0,4],[3,3],[4,4]].forEach(([x,y]) => sx.fillRect(x*px, y*px, px, px));
+  return `url(${sc.toDataURL()}) 0 0, crosshair`;
 })();
 
 const shockwaves = [];
@@ -290,8 +319,23 @@ canvas.style.cursor = arrowCursor;
 const setMurderMode = (on) => {
   murderMode = on;
   cursor.murder = on;
+  if (on) {
+    pruneMode = false;
+    document.getElementById('prune-btn').textContent = 'PRUNE';
+  }
   canvas.style.cursor = on ? knifeCursor : arrowCursor;
   document.getElementById('murder-btn').textContent = on ? 'STOP MURDER' : 'MURDER';
+};
+
+const setPruneMode = (on) => {
+  pruneMode = on;
+  if (on) {
+    murderMode = false;
+    cursor.murder = false;
+    document.getElementById('murder-btn').textContent = 'MURDER';
+  }
+  canvas.style.cursor = on ? scissorsCursor : arrowCursor;
+  document.getElementById('prune-btn').textContent = on ? 'STOP PRUNING' : 'PRUNE';
 };
 
 const settingsModal = document.getElementById('settings-modal');
@@ -311,6 +355,10 @@ document.getElementById('settings-close').addEventListener('click', () => settin
 settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
 document.getElementById('murder-btn').addEventListener('click', () => {
   setMurderMode(!murderMode);
+  settingsModal.classList.add('hidden');
+});
+document.getElementById('prune-btn').addEventListener('click', () => {
+  setPruneMode(!pruneMode);
   settingsModal.classList.add('hidden');
 });
 document.getElementById('clear').addEventListener('click', () => {
