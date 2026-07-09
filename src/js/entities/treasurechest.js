@@ -65,6 +65,10 @@ const createTreasureChest = (tank, x) => {
     x, y: FLOOR,
     dragged: false,
     intensity: 1.0,
+    // Full visual footprint (10px wide, plus lid-open lift), so drag hit-testing
+    // covers the whole chest, not just its base point.
+    hitHalfWidth: 5,
+    hitHeight: CHEST_HEIGHT + 4,
     // Build-up timer: counts toward the next burst
     _buildTimer: 0,
     _buildNext: 20 + Math.random() * 10, // 20–30 s between bursts

@@ -132,13 +132,21 @@ canvas.addEventListener('mousemove', (e) => {
 });
 canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; if (dragged) { dragged.dragged = false; dragged = null; } });
 
+// Snail/turtle are small critters, a tight circular hit radius around their point
+// is accurate. Decor (plant, rock, treasure-chest, bubbler-rock) can span dozens of
+// pixels, so they carry their own hitHalfWidth/hitHeight footprint from creation —
+// use that instead, or a click anywhere but the exact base pixel would miss.
+const findDraggable = (tx, ty) => entities.find(ent => {
+  if (ent.type === 'snail' || ent.type === 'turtle') return Math.hypot(ent.x - tx, ent.y - ty) < 3;
+  if (ent.hitHalfWidth === undefined) return false;
+  return Math.abs(tx - ent.x) <= ent.hitHalfWidth && ty <= ent.y + 1 && ty >= ent.y - ent.hitHeight;
+});
+
 canvas.addEventListener('mousedown', (e) => {
   if (murderMode || pruneMode) return;
   hideIntensitySlider();
   const { x: tx, y: ty } = canvasToTank(e);
-  const hit = entities.find(ent =>
-    (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - tx, ent.y - ty) < 3
-  );
+  const hit = findDraggable(tx, ty);
   if (hit) {
     if (hit.type === 'bubbler-rock' || hit.type === 'treasure-chest') {
       longPressTimer = setTimeout(() => {
@@ -225,9 +233,7 @@ canvas.addEventListener('touchstart', (e) => {
   cursor.x = p.x; cursor.y = p.y;
   if (murderMode || pruneMode) return;
   hideIntensitySlider();
-  const hit = entities.find(ent =>
-    (ent.type === 'snail' || ent.type === 'turtle' || ent.type === 'plant' || ent.type === 'rock' || ent.type === 'treasure-chest' || ent.type === 'bubbler-rock') && Math.hypot(ent.x - p.x, ent.y - p.y) < 3
-  );
+  const hit = findDraggable(p.x, p.y);
   if (hit) {
     if (hit.type === 'bubbler-rock' || hit.type === 'treasure-chest') {
       longPressTimer = setTimeout(() => {

@@ -133,6 +133,22 @@ describe('createBubblerRock', () => {
     // At intensity 2× the formula divides by 2, so _next should be ~half
     expect(nexts(brFast)).toBeLessThan(nexts(brSlow))
   })
+
+  test('hitHalfWidth/hitHeight cover every pixel actually drawn', () => {
+    // REGRESSION: the drag hit-test used a fixed 3px radius from the mound's base
+    // point, but the mound is 11px wide — most of it was unclickable.
+    const ctx = loadEntity('bubblerrock.js', 0.5)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    const pixels = []
+    const mockCtx = { fillStyle: '', globalAlpha: 1, fillRect: (x, y) => pixels.push({ x, y }) }
+    br.draw(mockCtx)
+    expect(pixels.length).toBeGreaterThan(0)
+    for (const px of pixels) {
+      expect(Math.abs(px.x - Math.round(br.x))).toBeLessThanOrEqual(br.hitHalfWidth)
+      expect(tank.y2 - px.y).toBeLessThanOrEqual(br.hitHeight)
+    }
+  })
 })
 
 describe('createMeanderingBubble (via update)', () => {

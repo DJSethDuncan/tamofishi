@@ -56,6 +56,9 @@ const createBubblerRock = (tank, x) => {
     intensity: 1.0,
     _timer: 0,
     _next: 1 + Math.random() * 1.5,
+    // Full visual footprint, so drag hit-testing covers the whole mound, not just its base point.
+    hitHalfWidth: BUBBLER_HALFBASE,
+    hitHeight: Math.max(...BUBBLER_COLS),
   };
 
   br.surfaceAt = (wx) => {
