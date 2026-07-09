@@ -29,11 +29,18 @@ const createPlant = (tank, x, size) => {
   const baseColor = `rgb(${baseR},${baseG},${baseB})`;
   const tipColor = `rgb(${tipR},${tipG},${tipB})`;
 
+  // Full visual footprint (tallest stalk, widest lean + sway), so drag hit-testing
+  // covers the whole plant, not just its rooted base point.
+  const hitHeight = Math.max(...stalks.map((s) => s.h));
+  const hitHalfWidth = Math.ceil(Math.max(...stalks.map((s) => Math.abs(s.lean * s.h * 0.3))) + 1.5) + 1;
+
   const p = {
     type: 'plant',
     size,
     x, y: FLOOR,
     dragged: false,
+    hitHalfWidth,
+    hitHeight,
   };
 
   p.update = (dt) => {

@@ -43,11 +43,16 @@ const createRock = (tank, x, size) => {
     }
   }
 
+  // Full visual footprint, so drag hit-testing covers the whole rock, not just its base point.
+  const maxH = Math.max(1, ...colHeights);
+
   const r = {
     type: 'rock',
     size,
     x, y: FLOOR,
     dragged: false,
+    hitHalfWidth: halfBase,
+    hitHeight: maxH,
   };
 
   r.update = () => {};
@@ -59,8 +64,6 @@ const createRock = (tank, x, size) => {
     if (idx < 0 || idx >= colHeights.length || colHeights[idx] <= 0) return null;
     return FLOOR - colHeights[idx];
   };
-
-  const maxH = Math.max(1, ...colHeights);
 
   r.draw = (ctx) => {
     const rx = Math.round(r.x);

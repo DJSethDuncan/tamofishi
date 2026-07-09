@@ -218,4 +218,22 @@ describe('createTreasureChest', () => {
 
     expect(fastBurst).toBeGreaterThan(slowBurst)
   })
+
+  test('hitHalfWidth/hitHeight cover every pixel actually drawn, lid open or closed', () => {
+    // REGRESSION: the drag hit-test used a fixed 3px radius from the chest's base
+    // point — the chest is 10px wide, so most of its body and lid were unclickable.
+    const ctx = loadEntity('treasurechest.js', 0.5)
+    const tank = makeTank()
+    const chest = ctx.createTreasureChest(tank, 90)
+    const pixels = []
+    const mockCtx = { fillStyle: '', fillRect: (x, y) => pixels.push({ x, y }) }
+    chest.draw(mockCtx)
+    chest._lidLift = chest._lidTarget = 3 // lid fully open
+    chest.draw(mockCtx)
+    expect(pixels.length).toBeGreaterThan(0)
+    for (const px of pixels) {
+      expect(Math.abs(px.x - Math.round(chest.x))).toBeLessThanOrEqual(chest.hitHalfWidth)
+      expect(tank.y2 - px.y).toBeLessThanOrEqual(chest.hitHeight)
+    }
+  })
 })
