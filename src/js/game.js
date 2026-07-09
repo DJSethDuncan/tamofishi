@@ -500,14 +500,25 @@ document.querySelectorAll('.icon').forEach(el => {
 loadState().then(() => requestAnimationFrame(loop));
 
 let last = performance.now();
+// Entity movement (x += vx, not scaled by dt) assumes it's called at a fixed rate — on a
+// high-refresh-rate display, rendering at native rate would call update() far more often
+// than on a 60Hz display, making everything visibly faster. Decouple simulation from
+// rendering: entities step at a fixed 60 ticks/sec via an accumulator, independent of how
+// often requestAnimationFrame actually fires. Drawing still happens every rendered frame.
+const FIXED_DT = 1 / 60;
+let accumulator = 0;
 function loop(now) {
-  const dt = Math.min((now - last) / 1000, 0.1) * 0.85;
+  const frameDt = Math.min((now - last) / 1000, 0.1) * 0.85;
   last = now;
-  entities.forEach(e => e.update(dt, entities));
-  // Remove eaten or fully decayed entities
-  for (let i = entities.length - 1; i >= 0; i--) {
-    const e = entities[i];
-    if (e.eaten || (e.dead !== undefined && e.dead <= 0)) entities.splice(i, 1);
+  accumulator += frameDt;
+  while (accumulator >= FIXED_DT) {
+    entities.forEach(e => e.update(FIXED_DT, entities));
+    // Remove eaten or fully decayed entities
+    for (let i = entities.length - 1; i >= 0; i--) {
+      const e = entities[i];
+      if (e.eaten || (e.dead !== undefined && e.dead <= 0)) entities.splice(i, 1);
+    }
+    accumulator -= FIXED_DT;
   }
   drawTank();
   entities.filter(e => e.type === 'rock').forEach(e => e.draw(ctx));
@@ -521,8 +532,8 @@ function loop(now) {
   // Shockwaves
   for (let i = shockwaves.length - 1; i >= 0; i--) {
     const sw = shockwaves[i];
-    sw.r += dt * 25;
-    sw.life -= dt * 4;
+    sw.r += frameDt * 25;
+    sw.life -= frameDt * 4;
     if (sw.life <= 0) { shockwaves.splice(i, 1); continue; }
     const rx = Math.round(sw.x), ry = Math.round(sw.y), r = Math.round(sw.r);
     ctx.globalAlpha = sw.life;
