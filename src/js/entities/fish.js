@@ -92,7 +92,7 @@ const createFish = (tank, x, y) => {
       else { f.x += (dx / d) * 0.18; f.y += (dy / d) * 0.18; }
       }
     } else if (f.target) chaseFood();
-    else if (fleeCursor(f, 0.25)) { /* fleeing murder cursor */ }
+    else if (fleeCursor(f, 0.25)) { f.x += f.vx; f.y += f.vy; }
     else if (!chaseCursor(f, 0.15)) swimIdle(dt, entities);
 
     }
