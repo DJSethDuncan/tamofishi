@@ -38,7 +38,7 @@ const createTurtle = (tank, x, y) => {
     const d = Math.hypot(dx, dy);
     if (d < EAT_DIST) {
       const wasCrab = t.target.type === 'crab';
-      entities.splice(entities.indexOf(t.target), 1);
+      t.target.eaten = true;
       t.target = null;
       t.idle = wasCrab ? CRAB_EAT_COOLDOWN : FEED_COOLDOWN;
       t.vx = 0;

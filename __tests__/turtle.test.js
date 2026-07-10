@@ -39,7 +39,7 @@ describe('turtle balance — crab cooldown', () => {
     const entities = [t, crab]
     t.update(0.1, entities)
     expect(t.idle).toBe(20)
-    expect(entities).not.toContain(crab)
+    expect(crab.eaten).toBe(true)
   })
 
   test('turtle still uses FEED_COOLDOWN (2s) after eating a fish', () => {
@@ -53,7 +53,30 @@ describe('turtle balance — crab cooldown', () => {
     const entities = [t, fish]
     t.update(0.1, entities)
     expect(t.idle).toBe(2)
-    expect(entities).not.toContain(fish)
+    expect(fish.eaten).toBe(true)
+  })
+})
+
+describe('turtle balance — eating uses deferred removal, not direct splice', () => {
+  test('eating does not remove the prey from the entities array mid-update', () => {
+    // REGRESSION: chasePrey used to splice the prey directly out of the shared
+    // entities array during entities.forEach(e => e.update(...)). If an entity
+    // earlier in the array ate prey later in the array, later entities would
+    // shift down and one would silently skip its update() call that frame.
+    // Removal must be deferred: mark .eaten = true and let the game loop's
+    // dedicated sweep pass (after forEach completes) do the actual splice.
+    const ctx = loadTurtleCtx(0)
+    const tank = makeTank()
+    const t = ctx.createTurtle(tank, 50, 55)
+    t.idle = 0
+    t.panic = 0
+    const fish = { type: 'fish', x: 50, y: 55, eaten: false }
+    t.target = fish
+    const entities = [t, fish]
+    t.update(0.1, entities)
+    expect(entities.length).toBe(2)
+    expect(entities).toContain(fish)
+    expect(fish.eaten).toBe(true)
   })
 })
 

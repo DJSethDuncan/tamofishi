@@ -33,7 +33,7 @@ const createCrab = (tank, x, y) => {
   const chasePrey = (entities) => {
     const dx = c.target.x - c.x, dy = c.target.y - c.y;
     const d = Math.hypot(dx, dy);
-    if (d < EAT_DIST) { entities.splice(entities.indexOf(c.target), 1); c.target = null; c.idle = FEED_COOLDOWN; c.vx = 0; return; }
+    if (d < EAT_DIST) { c.target.eaten = true; c.target = null; c.idle = FEED_COOLDOWN; c.vx = 0; return; }
     c.vx = (dx / d) * 0.25;
     c.vy = (dy / d) * 0.25;
   };

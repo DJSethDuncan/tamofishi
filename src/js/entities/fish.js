@@ -88,7 +88,7 @@ const createFish = (tank, x, y) => {
       if (s.perched) { f.target = null; }
       else {
       const dx = s.x - f.x, dy = s.y - f.y, d = Math.hypot(dx, dy);
-      if (d < EAT_DIST) { entities.splice(entities.indexOf(s), 1); f.target = null; f.idle = FEED_COOLDOWN; fed(); }
+      if (d < EAT_DIST) { s.eaten = true; f.target = null; f.idle = FEED_COOLDOWN; fed(); }
       else { f.x += (dx / d) * 0.18; f.y += (dy / d) * 0.18; }
       }
     } else if (f.target) chaseFood();
