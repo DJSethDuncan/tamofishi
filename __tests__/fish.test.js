@@ -48,3 +48,30 @@ describe('fish — fleeing the murder cursor', () => {
     expect(f.x).toBeLessThan(50) // and the fish must actually have moved, not frozen
   })
 })
+
+describe('fish — eating shrimp uses deferred removal, not direct splice', () => {
+  test('eating a shrimp marks it eaten instead of splicing it out mid-update', () => {
+    // REGRESSION: this path used to splice the shrimp directly out of the shared
+    // entities array during entities.forEach(e => e.update(...)), which can skip
+    // another entity's update() for that frame if it shifted into an
+    // already-visited array index. Removal must be deferred via .eaten = true,
+    // matching tryEat() and the game loop's dedicated sweep pass.
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+    f.sex = 'm' // fixedRandom(0) would otherwise always satisfy the reproduction check below
+    const shrimp = { type: 'shrimp', x: 50.2, y: 30, perched: false, eaten: false }
+    f.target = shrimp
+    const entities = [f, shrimp]
+
+    f.update(0.1, entities)
+
+    expect(entities.length).toBe(2)
+    expect(entities).toContain(shrimp)
+    expect(shrimp.eaten).toBe(true)
+  })
+})
