@@ -1,6 +1,6 @@
 # Tamofishi
 
-A pixel-art aquarium simulator rendered on a single HTML canvas. Stock your tank with fish, crabs, snails, turtles, shrimp, plants, and rocks, then watch the ecosystem play out.
+A pixel-art aquarium simulator rendered on a single HTML canvas. Stock your tank with fish, crabs, snails, turtles, shrimp, plants, duckweed, rocks, bubbler rocks, and treasure chests, then watch the ecosystem play out.
 
 ![Tamofishi screenshot](assets/screenshot.png)
 
@@ -16,7 +16,8 @@ A pixel-art aquarium simulator rendered on a single HTML canvas. Stock your tank
 
 - **Click the water surface** to drop food flakes
 - **Click an animal** to spook it
-- **Drag** snails, plants, and rocks to reposition them
+- **Drag** snails, plants, rocks, bubbler rocks, and treasure chests to reposition them
+- **Long-press** a bubbler rock or treasure chest to open its bubble-intensity slider
 - **ADD** button spawns new entities
 - **CLEAR** removes all entities from the tank
 - Fish and crabs will follow your cursor
@@ -47,9 +48,21 @@ Tiny and quick, shrimp walk along surfaces and perch sideways on plant stalks fo
 
 Swaying stalks rooted to the sand floor. Come in small, medium, and large sizes. Shrimp perch on them, snails climb them. Draggable.
 
+### Duckweed
+
+Tiny fronds that drift along the water surface and slowly multiply up to a population cap. Prune mode cuts them away.
+
 ### Rocks
 
 Procedurally-generated terrain with bumpy surfaces. Crabs and turtles climb over them. Affect the floor height for nearby entities. Draggable.
+
+### Bubbler Rock
+
+Limestone-colored rock decor that continuously vents a slow, meandering stream of bubbles from random points along its mound. Long-press to open an intensity slider controlling how often it bubbles. Draggable.
+
+### Treasure Chest
+
+Decor piece whose lid pops open every so often to release a burst of rising bubbles, startling nearby animals and occasionally drawing a curious fish. Long-press to open an intensity slider controlling how often it bursts. Draggable.
 
 ## Food chain
 
