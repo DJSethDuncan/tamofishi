@@ -129,3 +129,54 @@ jobs:
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8 \
             -authenticationKeyID $APP_STORE_CONNECT_API_KEY_ID \
             -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID
+
+  release:
+    name: release
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Build release notes
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | grep -A1 "^${GITHUB_REF_NAME}$" | tail -n1)
+          if [ "$PREV_TAG" = "$GITHUB_REF_NAME" ] || [ -z "$PREV_TAG" ]; then
+            RANGE="$GITHUB_REF_NAME"
+          else
+            RANGE="$PREV_TAG..$GITHUB_REF_NAME"
+          fi
+
+          FEATURES=$(git log $RANGE --pretty=format:'- %s' | grep -E '^- feat' || true)
+          FIXES=$(git log $RANGE --pretty=format:'- %s' | grep -E '^- fix' || true)
+          OTHER=$(git log $RANGE --pretty=format:'- %s' | grep -vE '^- (feat|fix)' || true)
+
+          {
+            echo "## What's changed"
+            echo
+            if [ -n "$FEATURES" ]; then
+              echo "### Features"
+              echo "$FEATURES"
+              echo
+            fi
+            if [ -n "$FIXES" ]; then
+              echo "### Bug Fixes"
+              echo "$FIXES"
+              echo
+            fi
+            if [ -n "$OTHER" ]; then
+              echo "### Other Changes"
+              echo "$OTHER"
+              echo
+            fi
+          } > release-notes.md
+
+      - name: Create GitHub Release
+        run: gh release create "$GITHUB_REF_NAME" --notes-file release-notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
