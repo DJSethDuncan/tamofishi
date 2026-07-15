@@ -100,4 +100,26 @@ describe('fleeCursor', () => {
     expect(entity.vx).toBeLessThan(0)           // flee left, away from cursor
     expect(entity.vx).toBeCloseTo(-0.2)         // -speed * (dx/d)
   })
+
+  test('returns false when cursor is beyond FEED_RANGE', () => {
+    const ctx = loadCursorCtx()
+    ctx.cursor.x = 70 // d = 20 > 10
+    ctx.cursor.y = 30
+    ctx.cursor.murder = true
+    const entity = { x: 50, y: 30, vx: 0, vy: 0 }
+    expect(ctx.fleeCursor(entity, 0.2)).toBe(false)
+  })
+
+  test('returns false when the cursor is too close (d < 0.1), avoiding a velocity spike', () => {
+    // Without this guard, dividing by a near-zero distance would produce an
+    // erratic, extremely large flee velocity instead of a sane one.
+    const ctx = loadCursorCtx()
+    ctx.cursor.x = 50.05 // d = 0.05 < 0.1
+    ctx.cursor.y = 30
+    ctx.cursor.murder = true
+    const entity = { x: 50, y: 30, vx: 0, vy: 0 }
+    const result = ctx.fleeCursor(entity, 0.2)
+    expect(result).toBe(false)
+    expect(entity.vx).toBe(0)
+  })
 })
