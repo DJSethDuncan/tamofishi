@@ -18,6 +18,3 @@ The Capacitor mobile scaffold lives in `mobile/` on `main`. All game changes go 
 1. Bump `MARKETING_VERSION` in Xcode (`mobile/ios/App/App.xcodeproj`)
 2. Commit and push to `main`
 3. Run `./scripts/deploy.sh vX.Y` — validates version, tags, and pushes; CI builds and uploads to App Store Connect
-
-**Known mobile gaps:**
-- `cursor.js` uses `mousemove` — needs touch event equivalents for mobile
