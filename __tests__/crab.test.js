@@ -53,3 +53,59 @@ describe('crab — eating prey uses deferred removal, not direct splice', () => 
     expect(c.idle).toBeGreaterThan(0)
   })
 })
+
+describe('crab — tank wall boundary handling', () => {
+  test('reaching the left wall while on the floor starts climbing up it', () => {
+    const ctx = loadCrabCtx(0.5)
+    const tank = makeTank()
+    const c = ctx.createCrab(tank, tank.x1, tank.y2)
+    c.idle = 10
+    c.vx = -0.5
+    c.vy = 0
+    const entities = [c]
+
+    c.update(0.1, entities)
+
+    expect(c.x).toBe(tank.x1)
+    expect(c.climbing).toBe(true)
+    expect(c.vx).toBe(0)
+    expect(c.vy).toBe(-0.04)
+    expect(c.idle).toBe(0.5)
+  })
+
+  test('reaching the right wall while on the floor starts climbing up it', () => {
+    const ctx = loadCrabCtx(0.5)
+    const tank = makeTank()
+    const c = ctx.createCrab(tank, tank.x2, tank.y2)
+    c.idle = 10
+    c.vx = 0.5
+    c.vy = 0
+    const entities = [c]
+
+    c.update(0.1, entities)
+
+    expect(c.x).toBe(tank.x2)
+    expect(c.climbing).toBe(true)
+    expect(c.vx).toBe(0)
+    expect(c.vy).toBe(-0.04)
+    expect(c.idle).toBe(0.5)
+  })
+
+  test('reaching the left wall while airborne bounces away instead of climbing', () => {
+    // Only a crab standing on the floor should start a wall climb — one still
+    // falling/jumping through the air should just bounce off the wall.
+    const ctx = loadCrabCtx(0.5)
+    const tank = makeTank()
+    const c = ctx.createCrab(tank, tank.x1, tank.y1)
+    c.idle = 10
+    c.vx = -0.5
+    c.vy = 0
+    const entities = [c]
+
+    c.update(0.1, entities)
+
+    expect(c.x).toBe(tank.x1)
+    expect(c.climbing).toBe(false)
+    expect(c.vx).toBeCloseTo(0.45, 5)
+  })
+})
