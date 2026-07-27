@@ -89,4 +89,18 @@ describe('updatePanic', () => {
     const result = ctx.updatePanic(entity, 0.1)
     expect(result).toBe(true)
   })
+
+  test('nudges vy by a small random amount when random is below 0.05', () => {
+    const ctx = loadBehavior('panic.js', 0.03) // both random() calls return 0.03
+    const entity = { panic: 1.5, idle: 0, vx: 0.5, vy: 0.2 }
+    ctx.updatePanic(entity, 0.1)
+    expect(entity.vy).toBeCloseTo(0.2 + (0.03 - 0.5) * 0.3)
+  })
+
+  test('does not nudge vy when random is at or above the 0.05 threshold', () => {
+    const ctx = loadBehavior('panic.js', 0.05) // 0.05 < 0.05 is false
+    const entity = { panic: 1.5, idle: 0, vx: 0.5, vy: 0.2 }
+    ctx.updatePanic(entity, 0.1)
+    expect(entity.vy).toBe(0.2)
+  })
 })
