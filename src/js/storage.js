@@ -6,7 +6,7 @@ if (!window.tank) {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
     },
     save: (data) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
     },
   };
 }
