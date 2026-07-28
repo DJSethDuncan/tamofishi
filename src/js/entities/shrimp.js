@@ -79,7 +79,9 @@ const createShrimp = (tank, x, y) => {
       sh.goalX = undefined; sh.goalY = undefined;
       sh.plant = null;
     } else if (sh.perched) {
-      // Sitting on a plant — reposition when idle expires
+      // Sitting on a plant — track the plant if it's been moved (e.g. dragged),
+      // so the shrimp doesn't get left behind at the plant's old location
+      if (sh.plant) sh.x = sh.plant.x;
       sh.idle -= dt;
       sh.vx = 0; sh.vy = 0;
       if (sh.idle <= 0) {

@@ -101,3 +101,30 @@ describe('shrimp — plant detection at floor level', () => {
     expect(sh.perched).toBe(false)
   })
 })
+
+describe('shrimp — stays attached to a plant that moves', () => {
+  test('perched shrimp follows its plant when the plant is dragged to a new x', () => {
+    // REGRESSION: a perched shrimp stored a reference to its plant but never
+    // re-synced its own x to the plant's x, so dragging the plant left the
+    // shrimp behind at the plant's old spot, floating in open water.
+    const ctx = loadShrimpCtx(0)
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    const plant = makeFloorPlant(50)
+    sh.perched = true
+    sh.plant = plant
+    sh.idle = 5 // not expiring this tick
+    sh.panic = 0
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    const entities = [sh, plant]
+
+    // Simulate the plant being dragged to a new location
+    plant.x = 90
+    sh.update(0.1, entities)
+
+    expect(sh.x).toBe(90)
+    expect(sh.perched).toBe(true)
+  })
+})
