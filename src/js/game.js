@@ -50,6 +50,7 @@ function feedAt(cx) {
   for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
     entities.push(createFlake(TANK, cx + (Math.random() - 0.5) * 4));
   }
+  TANK.lastFeedAt = Date.now();
 }
 
 const SPAWNERS = {

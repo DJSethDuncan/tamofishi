@@ -174,3 +174,76 @@ describe('fish — natural death', () => {
     expect(f.dead).toBeLessThanOrEqual(0) // game.js's sweep removes entities once dead <= 0
   })
 })
+
+describe('fish — duckweed is only a fallback food source', () => {
+  test('fish ignores duckweed if the tank was fed flakes within the last day', () => {
+    const ctx = loadFishCtx(0) // random(0) always passes noticeFlake's probability check
+    const tank = makeTank()
+    tank.lastFeedAt = Date.now() - 1000 // fed 1 second ago
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+    f.target = null
+    const duckweed = { type: 'duckweed', x: 51, y: 30, eaten: false }
+    const entities = [f, duckweed]
+
+    f.update(0.1, entities)
+
+    expect(f.target).toBeNull()
+  })
+
+  test('fish will notice duckweed once a day has passed since the last feeding', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    tank.lastFeedAt = Date.now() - (24 * 60 * 60 * 1000 + 1000) // just over a day ago
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+    f.target = null
+    const duckweed = { type: 'duckweed', x: 51, y: 30, eaten: false }
+    const entities = [f, duckweed]
+
+    f.update(0.1, entities)
+
+    expect(f.target).toBe(duckweed)
+  })
+
+  test('fish will notice duckweed if the tank has never been fed', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank() // no lastFeedAt set
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+    f.target = null
+    const duckweed = { type: 'duckweed', x: 51, y: 30, eaten: false }
+    const entities = [f, duckweed]
+
+    f.update(0.1, entities)
+
+    expect(f.target).toBe(duckweed)
+  })
+
+  test('a flake is still noticed even when the tank was recently fed', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    tank.lastFeedAt = Date.now() - 1000
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+    f.target = null
+    const flake = { type: 'flake', x: 51, y: 30, eaten: false }
+    const entities = [f, flake]
+
+    f.update(0.1, entities)
+
+    expect(f.target).toBe(flake)
+  })
+})
