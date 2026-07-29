@@ -83,6 +83,14 @@ const createFish = (tank, x, y) => {
     }
     if (!f.target && f.fullTimer <= 0) f.target = noticeFlake(f, entities);
 
+    // Sometimes, rarely, a fish chases a passing bubble just for fun -- not
+    // gated on hunger like real food, since it isn't food (chaseFood skips
+    // fed() for bubble targets below).
+    if (!f.target) {
+      const bubble = entities.find(e => e.type === 'bubble' && !e.eaten && Math.hypot(e.x - f.x, e.y - f.y) < 6);
+      if (bubble && Math.random() < 0.0002) f.target = bubble;
+    }
+
     if (f.target && f.target.type === 'shrimp') {
       const s = f.target;
       if (s.perched) { f.target = null; }

@@ -75,3 +75,56 @@ describe('fish — eating shrimp uses deferred removal, not direct splice', () =
     expect(shrimp.eaten).toBe(true)
   })
 })
+
+describe('fish — rarely chasing a bubble', () => {
+  test('targets a nearby bubble when the random roll succeeds and no other target is set', () => {
+    const ctx = loadFishCtx(0) // always succeeds the chase roll
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 0 // juvenile: skip the shrimp-hunting branch entirely
+    f.target = null
+    const bubble = { type: 'bubble', x: 51, y: 30, eaten: false }
+    const entities = [f, bubble]
+
+    f.update(0.1, entities)
+
+    expect(f.target).toBe(bubble)
+  })
+
+  test('does not chase a bubble outside the notice range', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 0
+    f.target = null
+    const bubble = { type: 'bubble', x: 60, y: 30, eaten: false } // d = 10, beyond the 6-unit range
+    const entities = [f, bubble]
+
+    f.update(0.1, entities)
+
+    expect(f.target).toBeNull()
+  })
+
+  test('eating a bubble does not fill the fish up', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 0
+    f.belly = 0
+    f.bellyMax = 3
+    const bubble = { type: 'bubble', x: 50.2, y: 30, eaten: false }
+    f.target = bubble
+    const entities = [f, bubble]
+
+    f.update(0.1, entities)
+
+    expect(bubble.eaten).toBe(true)
+    expect(f.belly).toBe(0) // bubbles aren't food -- fed() must not run
+  })
+})
