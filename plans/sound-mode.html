@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sound Mode — Implementation Plan</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #1a1a1a; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  h3 { font-size: 1rem; margin-top: 1.5rem; }
+  code { background: #f3f3f3; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+  pre { background: #1e1e1e; color: #e6e6e6; padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; }
+  pre code { background: none; padding: 0; color: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
+  th { background: #f7f7f7; }
+  .note { background: #fff8e1; border-left: 3px solid #f9a825; padding: 10px 14px; margin: 1rem 0; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>Sound Mode — Implementation Plan</h1>
+<p><em>Repo: <code>tamofishi</code>. Saved in <code>tamofishi/plans/</code>, matching where the <a href="https://github.com/DJSethDuncan/Tracked/blob/main/plans/followers-and-feed.html">Tracked</a> plan docs live.</em></p>
+
+<h2>Context</h2>
+<p>
+  Tamofishi is currently silent — there's no <code>&lt;audio&gt;</code> element, no sound
+  file, no audio-related code anywhere in <code>src/</code>. The task asks for a way to
+  <strong>enable sound</strong>, which this plan reads as: an opt-in toggle (default off,
+  since an aquarium tab playing sound unprompted on every reload would be an unwelcome
+  surprise) that, once on, plays small sound effects for a handful of existing tank
+  events. This is a plan for review, not a built feature — nothing here is implemented yet.
+</p>
+
+<h2>Why opt-in, not opt-out</h2>
+<p>
+  Tamofishi is the kind of app people leave open in a background tab for hours (per its
+  own <code>lastFeedAt</code>/mortality mechanics, it's explicitly designed to keep
+  running unattended). Autoplaying audio on load would also likely be blocked by
+  browsers' autoplay policies until a user gesture occurs anyway, so an explicit
+  "turn sound on" action is both the friendlier choice and the one that actually works
+  reliably across browsers.
+</p>
+
+<h2>Sound events</h2>
+<p>Mapped to code that already exists today — no new game-state hooks required, only a call at each existing site:</p>
+<table>
+<tr><th>Event</th><th>Trigger site</th><th>Sound</th></tr>
+<tr><td>Feeding</td><td><code>feedAt()</code> in <code>game.js</code></td><td>Short "plink" as flakes hit the water</td></tr>
+<tr><td>Fish/shrimp eats food</td><td><code>fed()</code> / the shrimp-eaten branch in <code>fish.js</code></td><td>Small "gulp"</td></tr>
+<tr><td>Fish dies</td><td><code>startDying()</code> in <code>fish.js</code></td><td>Soft descending tone — this is an ambient sim, not a game-over sting, so it should read as gentle, not alarming</td></tr>
+<tr><td>Murder mode kill</td><td><code>handleTap()</code>'s murder-cursor branch in <code>game.js</code></td><td>A distinct "snip"/pop, since this is a deliberate user action, not passive simulation — worth being satisfying</td></tr>
+<tr><td>New offspring spawn</td><td>the reproduction branch in <code>fish.js</code>' <code>update</code></td><td>Tiny "bloop"</td></tr>
+<tr><td>Toggling sound on</td><td>the new settings toggle itself</td><td>One confirmation chime, so turning it on has immediate, obvious feedback</td></tr>
+</table>
+<p>Bubble-popping and duckweed-related events are deliberately left out of v1 — bubbles and duckweed shadows are ambient/frequent enough that sound on every one would be noisy rather than pleasant. Can be revisited once the above lands and it's clear whether more coverage is wanted.</p>
+
+<h2>Asset format &amp; loading</h2>
+<p>
+  Short WAV or OGG clips (a handful of frames of runtime cost each, no streaming needed)
+  under a new <code>assets/sfx/</code> directory, matching the existing top-level
+  <code>assets/</code> convention. Loaded once at startup into a small lookup object
+  (<code>new Audio(path)</code> per clip, cloned via <code>.cloneNode()</code> on each
+  play so overlapping triggers — e.g. two fish eating in the same frame — don't cut each
+  other off).
+</p>
+<p class="note">
+  Sourcing the actual clips is out of scope for this plan — needs either royalty-free
+  assets (e.g. freesound.org clips under a compatible license) or a small set
+  Seth records/picks himself. Flagging this explicitly since it's the one part of this
+  plan that isn't a pure code decision.
+</p>
+
+<h2>New file: <code>src/js/behaviors/sound.js</code></h2>
+<p>Per <code>CLAUDE.md</code>'s "Compartmentalized" and "No duplicate behavior" principles, this is a new shared behavior file, not logic bolted onto <code>game.js</code> or individual entity files:</p>
+<pre><code>const SOUND_KEY = 'tamofishi-sound-enabled';
+let soundEnabled = localStorage.getItem(SOUND_KEY) === 'true';
+
+const CLIPS = {
+  feed: new Audio('assets/sfx/feed.wav'),
+  eat: new Audio('assets/sfx/eat.wav'),
+  death: new Audio('assets/sfx/death.wav'),
+  murder: new Audio('assets/sfx/murder.wav'),
+  spawn: new Audio('assets/sfx/spawn.wav'),
+  toggle: new Audio('assets/sfx/toggle.wav'),
+};
+
+const playSound = (name) => {
+  if (!soundEnabled) return;
+  const clip = CLIPS[name];
+  if (!clip) return;
+  clip.cloneNode().play().catch(() => {}); // autoplay-policy rejections are fine to swallow
+};
+
+const setSoundEnabled = (on) => {
+  soundEnabled = on;
+  localStorage.setItem(SOUND_KEY, String(on));
+  if (on) playSound('toggle');
+};
+
+const isSoundEnabled = () => soundEnabled;</code></pre>
+<p>
+  Persisted the same way the murder-mode/prune-mode toggles and tank state already are
+  — a dedicated <code>localStorage</code> key, following <code>storage.js</code>'s
+  existing try/catch-swallow pattern for storage access rather than introducing a new
+  persistence mechanism.
+</p>
+
+<h2>UI: settings modal toggle</h2>
+<p>
+  A new button in <code>#settings-modal</code> (<code>index.html</code>), next to
+  <code>murder-btn</code>/<code>prune-btn</code>, following the same pattern —
+  text flips between two states on click, exactly like <code>MURDER</code>/<code>STOP MURDER</code>:
+</p>
+<pre><code>&lt;button id="sound-btn" class="btn btn-modal"&gt;SOUND: OFF&lt;/button&gt;</code></pre>
+<pre><code>document.getElementById('sound-btn').addEventListener('click', () => {
+  setSoundEnabled(!isSoundEnabled());
+  document.getElementById('sound-btn').textContent = isSoundEnabled() ? 'SOUND: ON' : 'SOUND: OFF';
+});
+// set initial label from the persisted value on load, same as murder/prune do</code></pre>
+
+<h2>Call sites to wire up</h2>
+<p>One line each, at the existing event, no control-flow changes:</p>
+<ul>
+<li><code>game.js</code> <code>feedAt()</code> → <code>playSound('feed')</code></li>
+<li><code>fish.js</code> <code>fed()</code> and the shrimp-eaten branch → <code>playSound('eat')</code></li>
+<li><code>fish.js</code> <code>startDying()</code> → <code>playSound('death')</code></li>
+<li><code>game.js</code>'s murder-cursor kill branch in <code>handleTap()</code> → <code>playSound('murder')</code></li>
+<li><code>fish.js</code>'s reproduction branch → <code>playSound('spawn')</code></li>
+</ul>
+<p><code>sound.js</code> needs a <code>&lt;script&gt;</code> tag in <code>index.html</code>, loaded before <code>game.js</code> and any entity file that calls <code>playSound</code> — same ordering rule the existing <code>behaviors/*.js</code> scripts already follow.</p>
+
+<h2>Testing</h2>
+<p>
+  <code>playSound</code>/<code>setSoundEnabled</code>/<code>isSoundEnabled</code> are
+  pure enough to unit-test the same way <code>mortality.js</code>/<code>feeding.js</code>
+  are tested today (via the existing <code>vm.runInContext</code> harness in
+  <code>__tests__/</code>) — mock <code>Audio</code> and <code>localStorage</code>,
+  assert <code>playSound</code> is a no-op when disabled, plays the right clip name when
+  enabled, and that <code>setSoundEnabled</code> persists correctly. Actual audio
+  playback isn't something a test can meaningfully verify beyond that.
+</p>
+
+<h2>Not in this plan</h2>
+<ul>
+<li>A volume slider — a single on/off toggle matches the murder/prune pattern; can be added later if wanted.</li>
+<li>Background/ambient music — only discrete event sounds are covered here.</li>
+<li>Sourcing the actual audio clips (see the note above).</li>
+</ul>
+
+</body>
+</html>
