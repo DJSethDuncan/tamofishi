@@ -21,6 +21,7 @@ function loadFishCtx(fixedRandom = 0) {
   run(join(__dir, '../src/js/behaviors/panic.js'))
   run(join(__dir, '../src/js/behaviors/nudge.js'))
   run(join(__dir, '../src/js/behaviors/cursor.js'))
+  run(join(__dir, '../src/js/behaviors/mortality.js'))
   run(join(__dir, '../src/js/entities/fish.js'))
   return ctx
 }
@@ -56,14 +57,14 @@ describe('fish — eating shrimp uses deferred removal, not direct splice', () =
     // another entity's update() for that frame if it shifted into an
     // already-visited array index. Removal must be deferred via .eaten = true,
     // matching tryEat() and the game loop's dedicated sweep pass.
-    const ctx = loadFishCtx(0)
+    const ctx = loadFishCtx(1) // an adult fish, so a fixedRandom of 0 would always trigger the new mortality check below
     const tank = makeTank()
     const f = ctx.createFish(tank, 50, 30)
     f.panic = 0
     f.idle = 0
     f.age = 3600
     f.fullTimer = 0
-    f.sex = 'm' // fixedRandom(0) would otherwise always satisfy the reproduction check below
+    f.sex = 'm'
     const shrimp = { type: 'shrimp', x: 50.2, y: 30, perched: false, eaten: false }
     f.target = shrimp
     const entities = [f, shrimp]
@@ -126,5 +127,50 @@ describe('fish — rarely chasing a bubble', () => {
 
     expect(bubble.eaten).toBe(true)
     expect(f.belly).toBe(0) // bubbles aren't food -- fed() must not run
+  })
+})
+
+describe('fish — natural death', () => {
+  test('an adult fish that fails its mortality roll starts dying and skips its normal behavior this tick', () => {
+    const ctx = loadFishCtx(0) // always fails checkMortality's roll
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+    const startX = f.x
+
+    f.update(0.1, [f])
+
+    expect(f.dead).toBeDefined()
+    expect(f.x).toBe(startX) // dying short-circuits before any swimming logic
+  })
+
+  test('a baby/juvenile fish never rolls for death, regardless of the random roll', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.panic = 0
+    f.idle = 0
+    f.age = 0
+    f.target = null
+
+    f.update(0.1, [f])
+
+    expect(f.dead).toBeUndefined()
+  })
+
+  test('a dying fish floats upward and fades, then is left for the game loop to remove once dead reaches 0', () => {
+    const ctx = loadFishCtx(0)
+    const tank = makeTank()
+    const f = ctx.createFish(tank, 50, 30)
+    f.dead = 5
+    const startY = f.y
+
+    f.update(10, [f])
+
+    expect(f.y).toBeLessThan(startY) // floats up while dying
+    expect(f.dead).toBeLessThanOrEqual(0) // game.js's sweep removes entities once dead <= 0
   })
 })

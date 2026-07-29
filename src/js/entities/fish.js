@@ -63,9 +63,38 @@ const createFish = (tank, x, y) => {
     if (f.belly >= f.bellyMax) { f.fullTimer = 3600; f.belly = 0; f.bellyMax = 2 + Math.floor(Math.random() * 4); }
   };
 
+  const DEATH_FADE = 900;
+
+  // Floats up while fading out, matching the existing murder-mode kill
+  // visual (see game.js) -- self-contained here rather than reaching into
+  // that click handler's closures.
+  const startDying = () => {
+    f.dead = DEATH_FADE;
+    const origDraw = f.draw;
+    f.draw = (ctx) => {
+      ctx.globalAlpha = Math.max(0.1, f.dead / DEATH_FADE);
+      ctx.save();
+      const rx = Math.round(f.x), ry = Math.round(f.y);
+      ctx.translate(rx, ry);
+      ctx.scale(1, -1);
+      ctx.translate(-rx, -ry);
+      origDraw(ctx);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    };
+  };
+
   f.update = (dt, entities) => {
+    if (f.dead !== undefined) {
+      f.dead -= dt;
+      if (f.y > tank.y1 + 2) f.y -= dt * 20;
+      return;
+    }
     f.age += dt;
     if (f.fullTimer > 0) f.fullTimer -= dt;
+    // Only adults are at risk -- extensible via the factors array in
+    // checkMortality for future metrics (crowding, hunger, ...).
+    if (f.age >= 3600 && checkMortality(f, dt)) { startDying(); return; }
     checkNudge(f, entities);
     if (!f.panic && entities.some(e => e.type === 'crab' && Math.hypot(e.x - f.x, e.y - f.y) < 2)) startPanic(f);
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }
