@@ -219,6 +219,45 @@ describe('createTreasureChest', () => {
     expect(fastBurst).toBeGreaterThan(slowBurst)
   })
 
+  test('triggerBurst starts a burst immediately, without waiting for the build timer', () => {
+    const ctx = loadEntity('treasurechest.js', 0)
+    const tank = makeTank()
+    const chest = ctx.createTreasureChest(tank, 90)
+    const entities = []
+    chest.triggerBurst(entities)
+    expect(chest._burstRemain).toBeGreaterThan(0)
+    expect(chest._lidTarget).toBe(3)
+    chest.update(0.25, entities)
+    expect(entities.length).toBeGreaterThan(0)
+    expect(entities[0].type).toBe('bubble')
+  })
+
+  test('triggerBurst is a no-op mid-burst, so a tap cannot restart an in-progress burst', () => {
+    const ctx = loadEntity('treasurechest.js', 0)
+    const tank = makeTank()
+    const chest = ctx.createTreasureChest(tank, 90)
+    chest.triggerBurst([])
+    const remainAfterFirstTrigger = chest._burstRemain
+    chest.triggerBurst([]) // called again while mid-burst
+    expect(chest._burstRemain).toBe(remainAfterFirstTrigger)
+  })
+
+  test('triggerBurst startles nearby panic-capable entities', () => {
+    const m = Object.create(Math, { random: { value: () => 0, writable: true, enumerable: true, configurable: true } })
+    let panicCalled = false
+    const ctx = createContext({
+      Math: m,
+      startPanic: () => { panicCalled = true; },
+    })
+    const code = readFileSync(join(__dir, '../src/js/entities/treasurechest.js'), 'utf8')
+    runInContext(code.replace(/\bconst\b/g, 'var'), ctx)
+    const tank = makeTank()
+    const chest = ctx.createTreasureChest(tank, 90)
+    const fish = { type: 'fish', x: 95, y: tank.y2, panic: 0 }
+    chest.triggerBurst([chest, fish])
+    expect(panicCalled).toBe(true)
+  })
+
   test('hitHalfWidth/hitHeight cover every pixel actually drawn, lid open or closed', () => {
     // REGRESSION: the drag hit-test used a fixed 3px radius from the chest's base
     // point — the chest is 10px wide, so most of its body and lid were unclickable.
