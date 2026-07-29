@@ -177,7 +177,7 @@ describe('fish — natural death', () => {
 
 describe('fish — duckweed is only a fallback food source', () => {
   test('fish ignores duckweed if the tank was fed flakes within the last day', () => {
-    const ctx = loadFishCtx(0) // random(0) always passes noticeFlake's probability check
+    const ctx = loadFishCtx(0.01) // adult fish: 0 would always trigger the mortality check; needs to stay below noticeFlake's 0.5 threshold at d=1
     const tank = makeTank()
     tank.lastFeedAt = Date.now() - 1000 // fed 1 second ago
     const f = ctx.createFish(tank, 50, 30)
@@ -195,7 +195,7 @@ describe('fish — duckweed is only a fallback food source', () => {
   })
 
   test('fish will notice duckweed once a day has passed since the last feeding', () => {
-    const ctx = loadFishCtx(0)
+    const ctx = loadFishCtx(0.01) // adult fish: 0 would always trigger the mortality check; needs to stay below noticeFlake's 0.5 threshold at d=1
     const tank = makeTank()
     tank.lastFeedAt = Date.now() - (24 * 60 * 60 * 1000 + 1000) // just over a day ago
     const f = ctx.createFish(tank, 50, 30)
@@ -213,7 +213,7 @@ describe('fish — duckweed is only a fallback food source', () => {
   })
 
   test('fish will notice duckweed if the tank has never been fed', () => {
-    const ctx = loadFishCtx(0)
+    const ctx = loadFishCtx(0.01) // adult fish: 0 would always trigger the mortality check; needs to stay below noticeFlake's 0.5 threshold at d=1
     const tank = makeTank() // no lastFeedAt set
     const f = ctx.createFish(tank, 50, 30)
     f.panic = 0
@@ -230,7 +230,7 @@ describe('fish — duckweed is only a fallback food source', () => {
   })
 
   test('a flake is still noticed even when the tank was recently fed', () => {
-    const ctx = loadFishCtx(0)
+    const ctx = loadFishCtx(0.01) // adult fish: 0 would always trigger the mortality check; needs to stay below noticeFlake's 0.5 threshold at d=1
     const tank = makeTank()
     tank.lastFeedAt = Date.now() - 1000
     const f = ctx.createFish(tank, 50, 30)
