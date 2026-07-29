@@ -224,6 +224,8 @@ const handleTap = (tx, ty) => {
     }
     return;
   }
+  const chestHit = findDraggable(tx, ty);
+  if (chestHit && chestHit.type === 'treasure-chest') { chestHit.triggerBurst(entities); return; }
   if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
   const hit = entities.find(ent => ent.panic !== undefined && Math.hypot(ent.x - tx, ent.y - ty) < 3);
   if (hit) startPanic(hit);

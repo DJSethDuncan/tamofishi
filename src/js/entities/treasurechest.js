@@ -81,6 +81,27 @@ const createTreasureChest = (tank, x) => {
     _lidTarget: 0,
   };
 
+  // Starts a burst immediately, same effect as the build timer firing on its
+  // own -- shared by the automatic build-up path and a direct tap (see
+  // handleTap's treasure-chest branch in game.js). No-op mid-burst so a tap
+  // can't restart/extend a burst already in progress.
+  chest.triggerBurst = (entities) => {
+    if (chest._burstRemain > 0) return;
+    chest._buildTimer = 0;
+    chest._buildNext = (4 + Math.random() * 4) / chest.intensity;
+    chest._burstRemain = Math.max(1, Math.round((3 + Math.floor(Math.random() * 4)) * chest.intensity));
+    chest._burstInterval = 0.12 + Math.random() * 0.1;      // ~0.12–0.22 s apart
+    // Prime the timer so the first bubble fires at the start of the next update
+    chest._burstTimer = chest._burstInterval;
+    chest._lidTarget = 3;
+    // Startle nearby animals
+    for (const e of entities) {
+      if (e === chest) continue;
+      const d = Math.hypot(e.x - chest.x, e.y - chest.y);
+      if (d < 15 && e.panic !== undefined && typeof startPanic === 'function') startPanic(e);
+    }
+  };
+
   chest.update = (dt, entities) => {
     if (chest.dragged) return;
 
@@ -115,21 +136,7 @@ const createTreasureChest = (tank, x) => {
     } else {
       // Between bursts: wait for pressure to build
       chest._buildTimer += dt;
-      if (chest._buildTimer >= chest._buildNext) {
-        chest._buildTimer = 0;
-        chest._buildNext = (4 + Math.random() * 4) / chest.intensity;
-        chest._burstRemain = Math.max(1, Math.round((3 + Math.floor(Math.random() * 4)) * chest.intensity));
-        chest._burstInterval = 0.12 + Math.random() * 0.1;      // ~0.12–0.22 s apart
-        // Prime the timer so the first bubble fires at the start of the next update
-        chest._burstTimer = chest._burstInterval;
-        chest._lidTarget = 3;
-        // Startle nearby animals
-        for (const e of entities) {
-          if (e === chest) continue;
-          const d = Math.hypot(e.x - chest.x, e.y - chest.y);
-          if (d < 15 && e.panic !== undefined && typeof startPanic === 'function') startPanic(e);
-        }
-      }
+      if (chest._buildTimer >= chest._buildNext) chest.triggerBurst(entities);
     }
   };
 
