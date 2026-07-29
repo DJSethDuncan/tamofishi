@@ -94,3 +94,49 @@ describe('createDuckweed', () => {
     expect(entities.length).toBe(41)
   })
 })
+
+describe('createDuckweed — shadow', () => {
+  const makeMockCtx = () => {
+    const rects = []
+    return { rects, fillStyle: '', globalAlpha: 1, fillRect(x, y, w, h) { this.rects.push({ x, y, w, h, alpha: this.globalAlpha }) } }
+  }
+
+  test('casts a shadow below the duckweed that widens and fades with depth', () => {
+    const ctx = loadDuckweed()
+    const tank = makeTank()
+    const d = ctx.createDuckweed(tank, 50)
+    const mockCtx = makeMockCtx()
+
+    d.draw(mockCtx)
+
+    const shadowRects = mockCtx.rects.filter(r => r.y > Math.round(d.y))
+    expect(shadowRects.length).toBeGreaterThan(0)
+    // Every shadow row sits below the frond, and both width and alpha
+    // trend downward as depth (y) increases — the "conical, diffusing" shape.
+    const sorted = [...shadowRects].sort((a, b) => a.y - b.y)
+    for (let i = 1; i < sorted.length; i++) {
+      expect(sorted[i].w).toBeGreaterThanOrEqual(sorted[i - 1].w)
+      expect(sorted[i].alpha).toBeLessThan(sorted[i - 1].alpha)
+    }
+    // Fully diffused (alpha ~0) by the last row.
+    expect(sorted[sorted.length - 1].alpha).toBeCloseTo(0, 5)
+    // globalAlpha is restored so later-drawn entities aren't affected.
+    expect(mockCtx.globalAlpha).toBe(1)
+  })
+
+  test('shadow tracks the duckweed as it drifts, with no separate position state', () => {
+    const ctx = loadDuckweed()
+    const tank = makeTank()
+    const d = ctx.createDuckweed(tank, 50)
+    d.update(5, [d]) // let phase-driven drift move d.x
+    const movedX = Math.round(d.x)
+    const mockCtx = makeMockCtx()
+
+    d.draw(mockCtx)
+
+    const shadowRects = mockCtx.rects.filter(r => r.y > Math.round(d.y))
+    for (const r of shadowRects) {
+      expect(Math.abs((r.x + r.w / 2) - movedX)).toBeLessThanOrEqual(1)
+    }
+  })
+})
