@@ -13,7 +13,7 @@ function loadDuckweed() {
   return ctx
 }
 
-const makeTank = () => ({ x1: 0, y1: 10, x2: 100 })
+const makeTank = () => ({ x1: 0, y1: 10, x2: 100, y2: 70 })
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -101,9 +101,12 @@ describe('createDuckweed — shadow', () => {
     return { rects, fillStyle: '', globalAlpha: 1, fillRect(x, y, w, h) { this.rects.push({ x, y, w, h, alpha: this.globalAlpha }) } }
   }
 
-  test('casts a shadow below the duckweed that widens and fades with depth', () => {
+  test('casts a shadow below the duckweed that narrows and fades with depth', () => {
     const ctx = loadDuckweed()
     const tank = makeTank()
+    // Pin phase to 0 so the root (drawn at full alpha when sin(phase*3) > 0.3)
+    // never overlaps the shadow rows and skews the alpha/width trend checks.
+    vi.spyOn(Math, 'random').mockReturnValue(0)
     const d = ctx.createDuckweed(tank, 50)
     const mockCtx = makeMockCtx()
 
@@ -111,11 +114,11 @@ describe('createDuckweed — shadow', () => {
 
     const shadowRects = mockCtx.rects.filter(r => r.y > Math.round(d.y))
     expect(shadowRects.length).toBeGreaterThan(0)
-    // Every shadow row sits below the frond, and both width and alpha
-    // trend downward as depth (y) increases — the "conical, diffusing" shape.
+    // Every shadow row sits below the frond; width tapers and alpha fades
+    // as depth (y) increases — the inverted-cone, diffusing shape.
     const sorted = [...shadowRects].sort((a, b) => a.y - b.y)
     for (let i = 1; i < sorted.length; i++) {
-      expect(sorted[i].w).toBeGreaterThanOrEqual(sorted[i - 1].w)
+      expect(sorted[i].w).toBeLessThanOrEqual(sorted[i - 1].w)
       expect(sorted[i].alpha).toBeLessThan(sorted[i - 1].alpha)
     }
     // Fully diffused (alpha ~0) by the last row.
