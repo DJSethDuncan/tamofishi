@@ -18,11 +18,17 @@ const entities = [];
 const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size, phase: e.phase, intensity: e.intensity });
 
 const saveState = () => {
-  tank.save(entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity));
+  tank.save({
+    entities: entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity),
+    lastFeedAt: TANK.lastFeedAt,
+  });
 };
 
 const loadState = async () => {
-  const data = await tank.load();
+  const raw = await tank.load();
+  // Older saves are a bare entity array; newer saves wrap it with lastFeedAt.
+  const data = Array.isArray(raw) ? raw : raw && raw.entities;
+  if (raw && !Array.isArray(raw) && raw.lastFeedAt) TANK.lastFeedAt = raw.lastFeedAt;
   if (data && data.length) {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
@@ -50,6 +56,7 @@ function feedAt(cx) {
   for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
     entities.push(createFlake(TANK, cx + (Math.random() - 0.5) * 4));
   }
+  TANK.lastFeedAt = Date.now();
 }
 
 const SPAWNERS = {

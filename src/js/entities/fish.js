@@ -1,3 +1,5 @@
+const FISH_DUCKWEED_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 const createFish = (tank, x, y) => {
   const f = {
     type: 'fish',
@@ -110,7 +112,13 @@ const createFish = (tank, x, y) => {
         if (d < 6 && Math.random() < 0.3 / (d + 1)) { f.target = e; break; }
       }
     }
-    if (!f.target && f.fullTimer <= 0) f.target = noticeFlake(f, entities);
+    if (!f.target && f.fullTimer <= 0) {
+      // Duckweed is a fallback food source — only worth eating if the tank
+      // hasn't been fed flakes recently, so fish don't strip it while flakes
+      // are still around.
+      const canEatDuckweed = !tank.lastFeedAt || Date.now() - tank.lastFeedAt > FISH_DUCKWEED_COOLDOWN_MS;
+      f.target = noticeFlake(f, entities, e => e.type !== 'duckweed' || canEatDuckweed);
+    }
 
     // Sometimes, rarely, a fish chases a passing bubble just for fun -- not
     // gated on hunger like real food, since it isn't food (chaseFood skips
