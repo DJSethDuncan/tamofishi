@@ -362,6 +362,11 @@ document.getElementById('settings-btn').addEventListener('click', () => {
 });
 document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
 settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
+
+document.getElementById('logo-header').addEventListener('click', () => {
+  document.getElementById('logo-full').classList.toggle('hidden');
+  document.getElementById('logo-mini').classList.toggle('hidden');
+});
 document.getElementById('murder-btn').addEventListener('click', () => {
   setMurderMode(!murderMode);
   settingsModal.classList.add('hidden');

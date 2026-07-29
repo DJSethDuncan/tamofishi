@@ -18,6 +18,12 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 .btn:hover { background: #1a5a1a; }
 .btn:active { background: #33ff33; color: #0a1a0a; }
 
+#logo-header { text-align: center; color: #33ff33; cursor: pointer; flex-shrink: 0; }
+#logo-full { margin: 4px 0; font-size: 4px; line-height: 1; white-space: pre; }
+#logo-full.hidden { display: none; }
+#logo-mini { margin: 6px 0; font-size: 16px; letter-spacing: 3px; }
+#logo-mini.hidden { display: none; }
+
 #tank-wrap { position: relative; flex: 1; min-height: 0; }
 
 #icon-buttons {
