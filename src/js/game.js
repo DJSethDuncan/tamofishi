@@ -11,7 +11,7 @@ const COLORS = {
   wall:  '#0d3d0d',
 };
 
-const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5 };
+const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5, background: 'gradient' };
 
 const entities = [];
 
@@ -21,6 +21,7 @@ const saveState = () => {
   tank.save({
     entities: entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity),
     lastFeedAt: TANK.lastFeedAt,
+    background: TANK.background,
   });
 };
 
@@ -29,6 +30,7 @@ const loadState = async () => {
   // Older saves are a bare entity array; newer saves wrap it with lastFeedAt.
   const data = Array.isArray(raw) ? raw : raw && raw.entities;
   if (raw && !Array.isArray(raw) && raw.lastFeedAt) TANK.lastFeedAt = raw.lastFeedAt;
+  if (raw && !Array.isArray(raw) && raw.background === 'black') TANK.background = 'black';
   if (data && data.length) {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
@@ -378,6 +380,15 @@ document.getElementById('murder-btn').addEventListener('click', () => {
   setMurderMode(!murderMode);
   settingsModal.classList.add('hidden');
 });
+const backgroundBtn = document.getElementById('background-btn');
+const updateBackgroundBtnLabel = () => {
+  backgroundBtn.textContent = `BACKGROUND: ${TANK.background === 'black' ? 'BLACK' : 'GRADIENT'}`;
+};
+backgroundBtn.addEventListener('click', () => {
+  TANK.background = TANK.background === 'black' ? 'gradient' : 'black';
+  updateBackgroundBtnLabel();
+  saveState();
+});
 document.getElementById('prune-btn').addEventListener('click', () => {
   setPruneMode(!pruneMode);
   settingsModal.classList.add('hidden');
@@ -448,15 +459,12 @@ function drawTank() {
   for (let x = 1; x <= W - 2; x++) { ctx.fillRect(x, 1, 1, 1); ctx.fillRect(x, H - 4, 1, 1); }
   for (let y = 1; y <= H - 4; y++) { ctx.fillRect(1, y, 1, 1); ctx.fillRect(W - 2, y, 1, 1); }
 
-  // Water gradient: green at top, dark at bottom
+  // Water background: gradient (green at top, dark at bottom) or flat black,
+  // per TANK.background -- see waterRowColor.
   const tankW = TANK.x2 - TANK.x1 + 1;
   const tankH = TANK.y2 - TANK.y1 + 1;
   for (let row = 0; row < tankH; row++) {
-    const t = row / (tankH - 1);
-    const r = Math.round(11 * (1 - t * 0.7));
-    const g = Math.round(43 * (1 - t * 0.7));
-    const b = Math.round(11 * (1 - t * 0.7));
-    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillStyle = waterRowColor(TANK.background, row, tankH);
     ctx.fillRect(TANK.x1, TANK.y1 + row, tankW, 1);
   }
 
@@ -515,7 +523,7 @@ document.querySelectorAll('.icon').forEach(el => {
   gc.fillRect(1, 5, 1, 1); gc.fillRect(5, 5, 1, 1);
 })();
 
-loadState().then(() => requestAnimationFrame(loop));
+loadState().then(() => { updateBackgroundBtnLabel(); requestAnimationFrame(loop); });
 
 let last = performance.now();
 // Entity movement (x += vx, not scaled by dt) assumes it's called at a fixed rate — on a
