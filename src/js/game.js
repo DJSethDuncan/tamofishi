@@ -143,11 +143,9 @@ canvas.addEventListener('mouseleave', () => { cursor.x = -1; cursor.y = -1; if (
 // is accurate. Decor (plant, rock, treasure-chest, bubbler-rock) can span dozens of
 // pixels, so they carry their own hitHalfWidth/hitHeight footprint from creation —
 // use that instead, or a click anywhere but the exact base pixel would miss.
-const findDraggable = (tx, ty) => entities.find(ent => {
-  if (ent.type === 'snail' || ent.type === 'turtle') return Math.hypot(ent.x - tx, ent.y - ty) < 3;
-  if (ent.hitHalfWidth === undefined) return false;
-  return Math.abs(tx - ent.x) <= ent.hitHalfWidth && ty <= ent.y + 1 && ty >= ent.y - ent.hitHeight;
-});
+// pickTopmostDraggable (behaviors/hitTest.js) picks the frontmost match by
+// draw order, not just the first match in the entities array.
+const findDraggable = (tx, ty) => pickTopmostDraggable(entities, tx, ty);
 
 canvas.addEventListener('mousedown', (e) => {
   if (murderMode || pruneMode) return;
