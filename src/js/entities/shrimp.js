@@ -1,3 +1,5 @@
+const SHRIMP_MAX = 20;
+
 const createShrimp = (tank, x, y) => {
   const GRAVITY = 0.08;
   const FLOOR = tank.y2;
@@ -159,9 +161,14 @@ const createShrimp = (tank, x, y) => {
       sh.y += sh.vy;
     }
 
-    // Birth
-    if (sh.age >= 900 && sh.sex === 'f' && Math.random() < 0.0000046) {
-      const count = 1 + Math.floor(Math.random() * 5);
+    // Birth -- capped like duckweed's reproduction, since otherwise a
+    // growing population of adult females rolls this every tick and
+    // compounds without bound. Litter size and odds both trimmed down from
+    // the original (1-5 per roll at 0.0000046/tick, uncapped) -- Seth
+    // reported shrimp still multiplying too fast even with the cap-free math.
+    const shrimpCount = entities.filter(e => e.type === 'shrimp').length;
+    if (shrimpCount < SHRIMP_MAX && sh.age >= 900 && sh.sex === 'f' && Math.random() < 0.000002) {
+      const count = 1 + Math.floor(Math.random() * 3);
       for (let i = 0; i < count; i++) entities.push(createShrimp(tank, sh.x + (Math.random() - 0.5) * 2, sh.y));
     }
 
