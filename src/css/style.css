@@ -26,25 +26,23 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 
 #tank-wrap { position: relative; flex: 1; min-height: 0; }
 
-#icon-buttons {
-  position: absolute; top: 3.4%; right: 1.2%; z-index: 10;
-  display: flex; gap: 4px;
-}
-
 .btn-settings {
   width: 32px; height: 32px; flex: none; padding: 0;
   display: flex; align-items: center; justify-content: center;
 }
 .btn-settings canvas { image-rendering: pixelated; width: 21px; height: 21px; pointer-events: none; }
 
-#add-btn { font-size: 22px; line-height: 1; }
-
+/* Opened by clicking/touching the treasure chest -- no longer anchored under
+   a fixed icon-button pair, so it's centered like the old settings modal. */
 #add-panel {
-  position: absolute; top: calc(3.4% + 40px); right: 1.2%; z-index: 15;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 15;
   background: #0a1a0a; border: 2px solid #1a5a1a;
-  padding: 6px; min-width: 180px;
+  padding: 6px; min-width: 180px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
 }
 #add-panel.hidden { display: none; }
+#settings-body { flex-direction: column; }
+#add-panel-close { margin-top: 2px; }
 
 .accordion-header {
   width: 100%; text-align: left; padding: 6px 8px; margin-bottom: 4px;
@@ -78,17 +76,6 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
   accent-color: #33ff33;
 }
 
-#settings-modal {
-  position: absolute; inset: 0; z-index: 20;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex; align-items: center; justify-content: center;
-}
-#settings-modal.hidden { display: none; }
-#settings-panel {
-  background: #0a1a0a; border: 2px solid #1a5a1a;
-  padding: 8px; display: flex; flex-direction: column; gap: 4px;
-  min-width: 200px;
-}
 .btn-modal { flex: none; padding: 8px 16px; text-align: center; }
 
 .icon { width: 20px; height: 12px; image-rendering: pixelated; vertical-align: middle; margin-right: 2px; pointer-events: none; }
