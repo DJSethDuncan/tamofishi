@@ -89,4 +89,18 @@ describe('pickTopmostDraggable', () => {
 
     expect(ctx.pickTopmostDraggable([fish], 50, 30)).toBeNull()
   })
+
+  test('a plant with hitStem defined is only grabbable on its literal stem pixels, not its bounding box', () => {
+    // REGRESSION: plants used to be grabbable anywhere within their
+    // hitHalfWidth/hitHeight bounding box -- a click aimed at something
+    // behind the plant, a few boxes off its stem, grabbed the plant instead.
+    const ctx = loadHitTest()
+    const plant = {
+      type: 'plant', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5,
+      hitStem: (tx, ty) => tx === 50 && ty === 28, // only one literal stem pixel
+    }
+
+    expect(ctx.pickTopmostDraggable([plant], 50, 28)).toBe(plant)
+    expect(ctx.pickTopmostDraggable([plant], 52, 29)).toBeNull() // inside the box, off the stem
+  })
 })
