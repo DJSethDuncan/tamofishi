@@ -20,10 +20,6 @@
 </div>
 <div id="tank-wrap">
   <canvas id="c"></canvas>
-  <div id="icon-buttons">
-    <button id="add-btn" class="btn btn-settings">+</button>
-    <button id="settings-btn" class="btn btn-settings"><canvas id="gear-icon" width="7" height="7"></canvas></button>
-  </div>
   <div id="add-panel" class="hidden">
     <div class="accordion-section">
       <button class="accordion-header" data-section="creatures">CREATURES <span class="acc-arrow">▴</span></button>
@@ -50,23 +46,24 @@
         </div>
       </div>
     </div>
+    <div class="accordion-section">
+      <button class="accordion-header" data-section="settings">SETTINGS <span class="acc-arrow">▴</span></button>
+      <div class="accordion-body" id="settings-body">
+        <button id="murder-btn" class="btn btn-modal">MURDER</button>
+        <button id="prune-btn" class="btn btn-modal">PRUNE</button>
+        <button id="background-btn" class="btn btn-modal">BACKGROUND: GRADIENT</button>
+        <button id="clear" class="btn btn-modal">CLEAR TANK</button>
+        <div id="tip-section" class="hidden">
+          <div id="tip-label">— TIP JAR —</div>
+          <div id="tip-buttons"></div>
+        </div>
+      </div>
+    </div>
+    <button id="add-panel-close" class="btn btn-modal">CLOSE</button>
   </div>
   <div id="intensity-popup" class="hidden">
     <div id="intensity-label">BUBBLES</div>
     <input type="range" id="intensity-range" min="1" max="10" value="5" orient="vertical">
-  </div>
-  <div id="settings-modal" class="hidden">
-    <div id="settings-panel">
-      <button id="murder-btn" class="btn btn-modal">MURDER</button>
-      <button id="prune-btn" class="btn btn-modal">PRUNE</button>
-      <button id="background-btn" class="btn btn-modal">BACKGROUND: GRADIENT</button>
-      <button id="clear" class="btn btn-modal">CLEAR TANK</button>
-      <div id="tip-section" class="hidden">
-        <div id="tip-label">— TIP JAR —</div>
-        <div id="tip-buttons"></div>
-      </div>
-      <button id="settings-close" class="btn btn-modal">CLOSE</button>
-    </div>
   </div>
 </div>
 </div>

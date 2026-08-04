@@ -55,9 +55,12 @@
     } catch (_) {}
   }
 
+  // Settings (including the tip section) now live inside the combined
+  // add-panel, opened by tapping the treasure chest, instead of a separate
+  // settings modal -- watch that panel's visibility instead.
   const observer = new MutationObserver(() => {
-    const modal = document.getElementById('settings-modal');
-    if (!modal.classList.contains('hidden')) loadProducts();
+    const panel = document.getElementById('add-panel');
+    if (!panel.classList.contains('hidden')) loadProducts();
   });
-  observer.observe(document.getElementById('settings-modal'), { attributeFilter: ['class'] });
+  observer.observe(document.getElementById('add-panel'), { attributeFilter: ['class'] });
 })();

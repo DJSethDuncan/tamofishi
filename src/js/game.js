@@ -48,6 +48,13 @@ const loadState = async () => {
     for (let i = 0; i < 6; i++) { const f = createFish(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10), TANK.y1 + 3 + Math.random() * (TANK.y2 - TANK.y1 - 6)); f.age = 3600; entities.push(f); }
     for (let i = 0; i < 3; i++) entities.push(createCrab(TANK, TANK.x1 + 5 + Math.random() * (TANK.x2 - TANK.x1 - 10)));
   }
+  // Every tank has a chest -- it's the sole entry point to the add/settings
+  // menu, so a tank without one would have no way to reach either. Covers
+  // brand-new tanks (the branch above) and any older save from before the
+  // chest was mandatory.
+  if (!entities.some(e => e.type === 'treasure-chest')) {
+    entities.push(createTreasureChest(TANK, TANK.x1 + 8 + Math.random() * (TANK.x2 - TANK.x1 - 16)));
+  }
 };
 
 setInterval(saveState, 5000);
@@ -177,7 +184,7 @@ canvas.addEventListener('mouseup', () => {
   }
 });
 
-const handleTap = (tx, ty) => {
+const handleTap = (tx, ty, e) => {
   if (pruneMode) {
     const hit = entities.find(ent => (ent.type === 'plant' || ent.type === 'duckweed') && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 4);
     if (hit) {
@@ -194,7 +201,8 @@ const handleTap = (tx, ty) => {
     return;
   }
   if (murderMode) {
-    const hit = entities.find(ent => ent.type !== 'flake' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
+    // Treasure chests can't be removed, murder mode included.
+    const hit = entities.find(ent => ent.type !== 'flake' && ent.type !== 'treasure-chest' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
     if (hit) {
       shockwaves.push({ x: hit.x, y: hit.y, r: 0, life: 1 });
       hit.dead = 900;
@@ -225,7 +233,15 @@ const handleTap = (tx, ty) => {
     return;
   }
   const chestHit = findDraggable(tx, ty);
-  if (chestHit && chestHit.type === 'treasure-chest') { chestHit.triggerBurst(entities); return; }
+  if (chestHit && chestHit.type === 'treasure-chest') {
+    chestHit.triggerBurst(entities);
+    // Stop this same click from immediately bubbling into the document-level
+    // "click outside the panel closes it" listener below, which would
+    // otherwise close the panel the instant it opens.
+    if (e) e.stopPropagation();
+    addPanel.classList.remove('hidden');
+    return;
+  }
   if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
   const hit = entities.find(ent => ent.panic !== undefined && Math.hypot(ent.x - tx, ent.y - ty) < 3);
   if (hit) startPanic(hit);
@@ -233,7 +249,7 @@ const handleTap = (tx, ty) => {
 
 canvas.addEventListener('click', (e) => {
   const { x: tx, y: ty } = canvasToTank(e);
-  handleTap(tx, ty);
+  handleTap(tx, ty, e);
 });
 
 canvas.addEventListener('touchstart', (e) => {
@@ -277,7 +293,7 @@ canvas.addEventListener('touchend', (e) => {
     if (dragged.type === 'snail' || dragged.type === 'turtle') dragged.idle = 2 + Math.random() * 4;
     dragged = null;
   } else {
-    handleTap(p.x, p.y);
+    handleTap(p.x, p.y, e);
   }
   cursor.x = -1; cursor.y = -1;
 }, { passive: false });
@@ -356,21 +372,21 @@ const setPruneMode = (on) => {
   document.getElementById('prune-btn').textContent = on ? 'STOP PRUNING' : 'PRUNE';
 };
 
-const settingsModal = document.getElementById('settings-modal');
 const addPanel = document.getElementById('add-panel');
 const panelSizer = document.getElementById('panel-sizer');
 let pendingSizeType = null;
 
-document.getElementById('settings-btn').addEventListener('click', () => {
-  settingsModal.classList.toggle('hidden');
-  if (!settingsModal.classList.contains('hidden')) {
-    addPanel.classList.add('hidden');
-    panelSizer.classList.add('hidden');
-    pendingSizeType = null;
-  }
+// The chest is the sole entry point for both "add creature/decor" and
+// "settings" -- they're one combined, persistent menu (see handleTap's
+// chestHit branch below) rather than two separate buttons/panels. Item and
+// setting buttons never auto-close it; only the CLOSE button or a click
+// outside the panel does, so people can click e.g. FISH repeatedly without
+// the menu closing on them each time.
+document.getElementById('add-panel-close').addEventListener('click', () => {
+  addPanel.classList.add('hidden');
+  panelSizer.classList.add('hidden');
+  pendingSizeType = null;
 });
-document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
-settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.add('hidden'); });
 
 document.getElementById('logo-header').addEventListener('click', () => {
   document.getElementById('logo-full').classList.toggle('hidden');
@@ -378,7 +394,6 @@ document.getElementById('logo-header').addEventListener('click', () => {
 });
 document.getElementById('murder-btn').addEventListener('click', () => {
   setMurderMode(!murderMode);
-  settingsModal.classList.add('hidden');
 });
 const backgroundBtn = document.getElementById('background-btn');
 const updateBackgroundBtnLabel = () => {
@@ -391,30 +406,19 @@ backgroundBtn.addEventListener('click', () => {
 });
 document.getElementById('prune-btn').addEventListener('click', () => {
   setPruneMode(!pruneMode);
-  settingsModal.classList.add('hidden');
 });
 document.getElementById('clear').addEventListener('click', () => {
+  // Treasure chests can't be removed -- it's the only way back into this
+  // menu, so clearing it out would strand the player with no way to add
+  // anything back or reopen settings.
   for (let i = entities.length - 1; i >= 0; i--) {
-    if (entities[i].type !== 'flake') entities.splice(i, 1);
-  }
-  settingsModal.classList.add('hidden');
-});
-
-
-document.getElementById('add-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const opening = addPanel.classList.contains('hidden');
-  addPanel.classList.toggle('hidden');
-  if (opening) {
-    settingsModal.classList.add('hidden');
-  } else {
-    panelSizer.classList.add('hidden');
-    pendingSizeType = null;
+    if (entities[i].type !== 'flake' && entities[i].type !== 'treasure-chest') entities.splice(i, 1);
   }
 });
+
 
 document.addEventListener('click', (e) => {
-  if (!addPanel.classList.contains('hidden') && !addPanel.contains(e.target) && e.target.id !== 'add-btn') {
+  if (!addPanel.classList.contains('hidden') && !addPanel.contains(e.target)) {
     addPanel.classList.add('hidden');
     panelSizer.classList.add('hidden');
     pendingSizeType = null;
@@ -507,21 +511,6 @@ document.querySelectorAll('.icon').forEach(el => {
   if (draw) draw(ic);
 });
 
-// Draw gear icon
-(function () {
-  const gc = document.getElementById('gear-icon').getContext('2d');
-  gc.fillStyle = '#33ff33';
-  // Center dot
-  gc.fillRect(3, 3, 1, 1);
-  // Ring
-  gc.fillRect(2, 2, 1, 1); gc.fillRect(4, 2, 1, 1);
-  gc.fillRect(2, 4, 1, 1); gc.fillRect(4, 4, 1, 1);
-  // Teeth
-  gc.fillRect(3, 0, 1, 1); gc.fillRect(3, 6, 1, 1);
-  gc.fillRect(0, 3, 1, 1); gc.fillRect(6, 3, 1, 1);
-  gc.fillRect(1, 1, 1, 1); gc.fillRect(5, 1, 1, 1);
-  gc.fillRect(1, 5, 1, 1); gc.fillRect(5, 5, 1, 1);
-})();
 
 loadState().then(() => { updateBackgroundBtnLabel(); requestAnimationFrame(loop); });
 
