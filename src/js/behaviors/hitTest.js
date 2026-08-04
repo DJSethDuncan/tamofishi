@@ -14,11 +14,19 @@ const isDraggableHit = (ent, tx, ty) => {
 // would) let a background decor item win over something drawn in front of
 // it, whenever the background item just happened to come first in the
 // entities array (e.g. spawned earlier).
+//
+// `>=` (not `>`) on the tie-check matters: two entities of the *same* type
+// (e.g. two overlapping rocks) tie on DRAG_Z_ORDER, and game.js's draw pass
+// (entities.filter(type).forEach(draw)) draws same-type entities in array
+// order, so the later one in the array is the one actually on top. `>`
+// alone would keep whichever same-type entity was found first, which is the
+// opposite of draw order -- exactly the reported "still grabs a background
+// rock" bug.
 const pickTopmostDraggable = (entities, tx, ty) => {
   let best = null;
   for (const ent of entities) {
     if (!isDraggableHit(ent, tx, ty)) continue;
-    if (!best || (DRAG_Z_ORDER[ent.type] ?? 0) > (DRAG_Z_ORDER[best.type] ?? 0)) best = ent;
+    if (!best || (DRAG_Z_ORDER[ent.type] ?? 0) >= (DRAG_Z_ORDER[best.type] ?? 0)) best = ent;
   }
   return best;
 };

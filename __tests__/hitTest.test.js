@@ -61,6 +61,21 @@ describe('pickTopmostDraggable', () => {
     expect(hit).toBe(snail)
   })
 
+  test('picks the later-added rock when two overlapping rocks tie on z-order', () => {
+    // REGRESSION: two same-type entities tie on DRAG_Z_ORDER, but game.js
+    // draws same-type entities in array order, so the later one in the
+    // array is the one actually drawn on top and should win the hit test --
+    // a strict `>` tie-check kept whichever rock was found first instead.
+    const ctx = loadHitTest()
+    const backRock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
+    const frontRock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
+    const entities = [backRock, frontRock] // frontRock added later -- drawn on top
+
+    const hit = ctx.pickTopmostDraggable(entities, 50, 29)
+
+    expect(hit).toBe(frontRock)
+  })
+
   test('returns null when nothing is hit', () => {
     const ctx = loadHitTest()
     const rock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
