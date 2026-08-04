@@ -1,5 +1,20 @@
 const FISH_DUCKWEED_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
+// Overcrowding bumps a fish's death rate up modestly rather than sharply --
+// Seth asked for "not a LOT more likely, maybe 5-10% more" once the tank
+// passes 25 fish, so this is a relative bump on top of the base rate
+// (BASE_DEATH_RATE_PER_SECOND, from mortality.js), not a flat probability.
+const FISH_CROWDING_THRESHOLD = 25;
+const FISH_CROWDING_RATE_MULTIPLIER = 0.075;
+
+// A checkMortality factor -- takes the shared entities array (unlike a
+// plain factor, which only gets the entity) so it's built as a closure at
+// the call site in f.update, where entities is already in scope.
+const crowdingMortalityFactor = (entities) => (entity) => {
+  const fishCount = entities.filter((e) => e.type === 'fish').length;
+  return fishCount > FISH_CROWDING_THRESHOLD ? BASE_DEATH_RATE_PER_SECOND * FISH_CROWDING_RATE_MULTIPLIER : 0;
+};
+
 const createFish = (tank, x, y) => {
   const f = {
     type: 'fish',
@@ -96,7 +111,7 @@ const createFish = (tank, x, y) => {
     if (f.fullTimer > 0) f.fullTimer -= dt;
     // Only adults are at risk -- extensible via the factors array in
     // checkMortality for future metrics (crowding, hunger, ...).
-    if (f.age >= 3600 && checkMortality(f, dt)) { startDying(); return; }
+    if (f.age >= 3600 && checkMortality(f, dt, [crowdingMortalityFactor(entities)])) { startDying(); return; }
     checkNudge(f, entities);
     if (!f.panic && entities.some(e => e.type === 'crab' && Math.hypot(e.x - f.x, e.y - f.y) < 2)) startPanic(f);
     if (updatePanic(f, dt)) { f.x += f.vx; f.y += f.vy; }

@@ -147,6 +147,48 @@ describe('fish — natural death', () => {
     expect(f.x).toBe(startX) // dying short-circuits before any swimming logic
   })
 
+  test('crowdingMortalityFactor contributes nothing at or under the threshold', () => {
+    const ctx = loadFishCtx(0)
+    const entities = Array.from({ length: 25 }, () => ({ type: 'fish' }))
+    expect(ctx.crowdingMortalityFactor(entities)({})).toBe(0)
+  })
+
+  test('crowdingMortalityFactor adds a rate contribution once over 25 fish', () => {
+    const ctx = loadFishCtx(0)
+    const entities = Array.from({ length: 26 }, () => ({ type: 'fish' }))
+    expect(ctx.crowdingMortalityFactor(entities)({})).toBeGreaterThan(0)
+  })
+
+  test('crowdingMortalityFactor ignores non-fish entities when counting', () => {
+    const ctx = loadFishCtx(0)
+    const entities = [
+      ...Array.from({ length: 26 }, () => ({ type: 'shrimp' })),
+      ...Array.from({ length: 20 }, () => ({ type: 'fish' })),
+    ]
+    expect(ctx.crowdingMortalityFactor(entities)({})).toBe(0)
+  })
+
+  test('an overcrowded tank raises an adult fish\'s death chance above the base rate alone', () => {
+    // REGRESSION-SHAPED: crowding must be additive on top of the base rate,
+    // not a replacement for it -- a roll that only the crowding contribution
+    // can catch should kill in a crowded tank and survive in a sparse one.
+    const probeCtx = loadFishCtx(0)
+    const roll = probeCtx.BASE_DEATH_RATE_PER_SECOND * 1.05 // above the base rate alone, below base+crowding
+    const ctx = loadFishCtx(roll)
+    const tank = makeTank()
+    const crowdedEntities = Array.from({ length: 26 }, () => ({ type: 'fish' }))
+    const f = ctx.createFish(tank, 50, 30)
+    crowdedEntities.push(f)
+    f.panic = 0
+    f.idle = 0
+    f.age = 3600
+    f.fullTimer = 0
+
+    f.update(1, crowdedEntities) // dt=1 so rate*dt equals the rate itself, matching the roll's scale
+
+    expect(f.dead).toBeDefined()
+  })
+
   test('a baby/juvenile fish never rolls for death, regardless of the random roll', () => {
     const ctx = loadFishCtx(0)
     const tank = makeTank()
