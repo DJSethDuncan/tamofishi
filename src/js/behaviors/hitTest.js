@@ -5,6 +5,11 @@ const DRAG_Z_ORDER = { rock: 0, 'treasure-chest': 1, 'bubbler-rock': 2, plant: 3
 
 const isDraggableHit = (ent, tx, ty) => {
   if (ent.type === 'snail' || ent.type === 'turtle') return Math.hypot(ent.x - tx, ent.y - ty) < 3;
+  // Plants are grabbable only by their literal drawn stem pixels, not a
+  // bounding-box "zone" around them -- otherwise a click aimed at something
+  // behind the plant, a few boxes off its stem, grabs the plant instead just
+  // for being the topmost thing whose box happened to cover that point.
+  if (ent.type === 'plant' && typeof ent.hitStem === 'function') return ent.hitStem(tx, ty);
   if (ent.hitHalfWidth === undefined) return false;
   return Math.abs(tx - ent.x) <= ent.hitHalfWidth && ty <= ent.y + 1 && ty >= ent.y - ent.hitHeight;
 };

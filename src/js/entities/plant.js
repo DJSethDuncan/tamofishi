@@ -29,10 +29,24 @@ const createPlant = (tank, x, size) => {
   const baseColor = `rgb(${baseR},${baseG},${baseB})`;
   const tipColor = `rgb(${tipR},${tipG},${tipB})`;
 
-  // Full visual footprint (tallest stalk, widest lean + sway), so drag hit-testing
-  // covers the whole plant, not just its rooted base point.
+  // Full visual footprint (tallest stalk, widest lean + sway) -- kept for
+  // anything that still wants a cheap bounding-box check, but drag hit
+  // testing itself now uses hitStem() below, which checks the literal drawn
+  // stem pixels instead of this whole rectangular zone. A wide zone let a
+  // click two or three boxes away from a plant -- aimed at something behind
+  // it -- grab the plant instead, just for being the topmost thing whose
+  // bounding box happened to cover that point.
   const hitHeight = Math.max(...stalks.map((s) => s.h));
   const hitHalfWidth = Math.ceil(Math.max(...stalks.map((s) => Math.abs(s.lean * s.h * 0.3))) + 1.5) + 1;
+
+  // Same per-row offset math as draw() -- shared so a hit test can never
+  // drift from what's actually rendered.
+  const stalkPixelAt = (stalk, i) => {
+    const t = i / stalk.h;
+    const spread = Math.round(stalk.lean * t * stalk.h * 0.3);
+    const sway = Math.round(Math.sin(stalk.phase + i * 0.4) * (t * t) * 1.5);
+    return { x: Math.round(p.x) + spread + sway, y: FLOOR - i };
+  };
 
   const p = {
     type: 'plant',
@@ -41,6 +55,19 @@ const createPlant = (tank, x, size) => {
     dragged: false,
     hitHalfWidth,
     hitHeight,
+  };
+
+  // Literal-stem hit test: true only if (tx, ty) lands on an actual drawn
+  // stem pixel this frame, not merely within the plant's overall footprint.
+  p.hitStem = (tx, ty) => {
+    const rtx = Math.round(tx), rty = Math.round(ty);
+    for (const stalk of stalks) {
+      for (let i = 0; i < stalk.h; i++) {
+        const px = stalkPixelAt(stalk, i);
+        if (px.x === rtx && px.y === rty) return true;
+      }
+    }
+    return false;
   };
 
   p.update = (dt) => {
@@ -64,16 +91,12 @@ const createPlant = (tank, x, size) => {
   };
 
   p.draw = (ctx) => {
-    const rx = Math.round(p.x);
     for (const stalk of stalks) {
       for (let i = 0; i < stalk.h; i++) {
         const t = i / stalk.h;
-        const spread = Math.round(stalk.lean * t * stalk.h * 0.3);
-        const swayAmount = t * t;
-        const sway = Math.round(Math.sin(stalk.phase + i * 0.4) * swayAmount * 1.5);
-        const py = FLOOR - i;
+        const px = stalkPixelAt(stalk, i);
         ctx.fillStyle = t < 0.4 ? baseColor : tipColor;
-        ctx.fillRect(rx + spread + sway, py, 1, 1);
+        ctx.fillRect(px.x, px.y, 1, 1);
       }
     }
   };

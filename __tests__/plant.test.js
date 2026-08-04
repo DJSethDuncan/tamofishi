@@ -50,3 +50,56 @@ describe('createPlant — drag hit-test footprint', () => {
     expect(p.hitHeight).toBeGreaterThan(3)
   })
 })
+
+describe('createPlant — hitStem (literal stem pixels, not the bounding-box zone)', () => {
+  test('hitStem is true for every pixel actually drawn this frame', () => {
+    const ctx = loadEntity('plant.js', 0.5)
+    const p = ctx.createPlant(makeTank(), 90, 'tall')
+    const mockCtx = makeMockCtx()
+    p.draw(mockCtx)
+    expect(mockCtx.pixels.length).toBeGreaterThan(0)
+    for (const px of mockCtx.pixels) {
+      expect(p.hitStem(px.x, px.y)).toBe(true)
+    }
+  })
+
+  test('hitStem is false for a point inside the bounding box but not on a drawn stem pixel', () => {
+    // REGRESSION: a click several boxes off the stem, but still within the
+    // old hitHalfWidth/hitHeight rectangle, used to grab the plant anyway --
+    // this is exactly the "grabbing zone" bug report.
+    const ctx = loadEntity('plant.js', 0.5)
+    const p = ctx.createPlant(makeTank(), 90, 'tall')
+    const mockCtx = makeMockCtx()
+    p.draw(mockCtx)
+    const drawn = new Set(mockCtx.pixels.map((px) => `${px.x},${px.y}`))
+
+    // Sweep the reported bounding box for at least one point that's inside
+    // the box but wasn't actually drawn on.
+    let foundGap = false
+    for (let dx = -p.hitHalfWidth; dx <= p.hitHalfWidth && !foundGap; dx++) {
+      for (let dy = 0; dy <= p.hitHeight && !foundGap; dy++) {
+        const x = Math.round(p.x) + dx
+        const y = p.y - dy
+        if (!drawn.has(`${x},${y}`)) {
+          expect(p.hitStem(x, y)).toBe(false)
+          foundGap = true
+        }
+      }
+    }
+    expect(foundGap).toBe(true)
+  })
+
+  test('hitStem tracks the stem as it sways between frames', () => {
+    const ctx = loadEntity('plant.js', 0.5)
+    const p = ctx.createPlant(makeTank(), 90, 'tall')
+    const mockCtx1 = makeMockCtx()
+    p.draw(mockCtx1)
+    p.update(0.5)
+    const mockCtx2 = makeMockCtx()
+    p.draw(mockCtx2)
+    expect(mockCtx2.pixels.length).toBeGreaterThan(0)
+    for (const px of mockCtx2.pixels) {
+      expect(p.hitStem(px.x, px.y)).toBe(true)
+    }
+  })
+})
