@@ -87,7 +87,6 @@ const SPAWNERS = {
   'rock-short': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'short'),
   'rock-medium': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'medium'),
   'rock-tall': () => createRock(TANK, TANK.x1 + 3 + Math.random() * (TANK.x2 - TANK.x1 - 6), 'tall'),
-  'treasure-chest': () => createTreasureChest(TANK, TANK.x1 + 8 + Math.random() * (TANK.x2 - TANK.x1 - 16)),
   'bubbler-rock': () => createBubblerRock(TANK, TANK.x1 + 8 + Math.random() * (TANK.x2 - TANK.x1 - 16)),
 };
 
