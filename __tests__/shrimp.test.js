@@ -102,6 +102,88 @@ describe('shrimp — plant detection at floor level', () => {
   })
 })
 
+describe('shrimp — birth is capped and slowed', () => {
+  test('an adult female does not give birth when the population is already at SHRIMP_MAX', () => {
+    // REGRESSION: birth had no population cap at all -- a growing group of
+    // adult females kept rolling every tick, compounding without bound.
+    const ctx = loadShrimpCtx(0) // Math.random() always returns 0 -- would win any birth roll
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    sh.sex = 'f'
+    sh.age = 1000
+    sh.idle = 0
+    sh.panic = 0
+    sh.perched = false
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    // Pad the entity list up to SHRIMP_MAX (20) shrimp, including sh itself.
+    const entities = [sh]
+    for (let i = entities.length; i < 20; i++) entities.push(ctx.createShrimp(tank, 10 + i, 55))
+
+    sh.update(0.1, entities)
+
+    expect(entities.length).toBe(20)
+  })
+
+  test('an adult female under the cap gives birth to 1-3 shrimp when the roll succeeds', () => {
+    const ctx = loadShrimpCtx(0) // Math.random() always returns 0 -- wins the birth roll, litter size floors to 1
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    sh.sex = 'f'
+    sh.age = 1000
+    sh.idle = 0
+    sh.panic = 0
+    sh.perched = false
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    const entities = [sh]
+
+    sh.update(0.1, entities)
+
+    expect(entities.length).toBe(2)
+  })
+
+  test('a female younger than the maturity threshold does not give birth', () => {
+    const ctx = loadShrimpCtx(0)
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    sh.sex = 'f'
+    sh.age = 899 // just under the 900 threshold
+    sh.idle = 0
+    sh.panic = 0
+    sh.perched = false
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    const entities = [sh]
+
+    sh.update(0.1, entities)
+
+    expect(entities.length).toBe(1)
+  })
+
+  test('a male shrimp never gives birth regardless of age or the roll', () => {
+    const ctx = loadShrimpCtx(0)
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    sh.sex = 'm'
+    sh.age = 1000
+    sh.idle = 0
+    sh.panic = 0
+    sh.perched = false
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    const entities = [sh]
+
+    sh.update(0.1, entities)
+
+    expect(entities.length).toBe(1)
+  })
+})
+
 describe('shrimp — stays attached to a plant that moves', () => {
   test('perched shrimp follows its plant when the plant is dragged to a new x', () => {
     // REGRESSION: a perched shrimp stored a reference to its plant but never
