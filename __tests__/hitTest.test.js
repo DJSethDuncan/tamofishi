@@ -14,33 +14,21 @@ function loadHitTest() {
 }
 
 describe('pickTopmostDraggable', () => {
-  test('picks the frontmost entity when two decor items overlap, regardless of array order', () => {
-    // REGRESSION: a plain entities.find(...) returned whichever matching
-    // entity happened to come first in the array (e.g. spawn order), not
-    // the one actually drawn on top -- a rock behind a plant could steal
-    // the plant's click.
-    const ctx = loadHitTest()
-    const rock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
-    const plant = { type: 'plant', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
-    // rock listed first in the array, but plant is drawn on top per game.js's draw order
-    const entities = [rock, plant]
-
-    const hit = ctx.pickTopmostDraggable(entities, 50, 29)
-
-    expect(hit).toBe(plant)
-  })
-
-  test('order in the array does not matter -- same result either way', () => {
+  test('among decor, the later array entry wins -- array order IS the z-index', () => {
+    // Decor z-order is exactly what the long-press settings modal's
+    // bring-to-front/send-to-back buttons manipulate (see game.js), by
+    // reordering entities within the array. So unlike creatures, decor
+    // has no fixed per-type ranking -- whichever decor entity is later in
+    // the array is the one actually drawn on top and should win.
     const ctx = loadHitTest()
     const rock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
     const plant = { type: 'plant', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
 
-    const hit = ctx.pickTopmostDraggable([plant, rock], 50, 29)
-
-    expect(hit).toBe(plant)
+    expect(ctx.pickTopmostDraggable([rock, plant], 50, 29)).toBe(plant)
+    expect(ctx.pickTopmostDraggable([plant, rock], 50, 29)).toBe(rock)
   })
 
-  test('bubbler-rock beats treasure-chest, which beats rock', () => {
+  test('decor type does not create a fixed hierarchy -- only array position does', () => {
     const ctx = loadHitTest()
     const rock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
     const chest = { type: 'treasure-chest', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
@@ -48,24 +36,30 @@ describe('pickTopmostDraggable', () => {
 
     expect(ctx.pickTopmostDraggable([rock, chest], 50, 29)).toBe(chest)
     expect(ctx.pickTopmostDraggable([chest, bubblerRock], 50, 29)).toBe(bubblerRock)
-    expect(ctx.pickTopmostDraggable([bubblerRock, rock], 50, 29)).toBe(bubblerRock)
+    // bubblerRock is listed first here, so rock -- later in the array -- wins,
+    // even though bubbler-rock "used to" always beat rock under the old
+    // fixed-type ranking.
+    expect(ctx.pickTopmostDraggable([bubblerRock, rock], 50, 29)).toBe(rock)
   })
 
-  test('snail beats decor items drawn behind it', () => {
+  test('creatures always beat decor, regardless of array order', () => {
+    // Creatures are drawn after all decor in game.js's draw loop no matter
+    // where they fall in the entities array, so a creature must win a tie
+    // against decor even if it happens to come earlier in the array (decor
+    // z-index reordering must never accidentally let decor grab a click
+    // meant for a snail/turtle sitting on top of it).
     const ctx = loadHitTest()
     const plant = { type: 'plant', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
     const snail = { type: 'snail', x: 50, y: 30 }
 
-    const hit = ctx.pickTopmostDraggable([plant, snail], 50, 30)
-
-    expect(hit).toBe(snail)
+    expect(ctx.pickTopmostDraggable([plant, snail], 50, 30)).toBe(snail)
+    expect(ctx.pickTopmostDraggable([snail, plant], 50, 30)).toBe(snail)
   })
 
-  test('picks the later-added rock when two overlapping rocks tie on z-order', () => {
-    // REGRESSION: two same-type entities tie on DRAG_Z_ORDER, but game.js
-    // draws same-type entities in array order, so the later one in the
-    // array is the one actually drawn on top and should win the hit test --
-    // a strict `>` tie-check kept whichever rock was found first instead.
+  test('picks the later-added rock when two overlapping rocks tie', () => {
+    // REGRESSION: two same-type entities tie on array position too if
+    // compared with a strict `>` instead of `>=` -- that kept whichever
+    // rock was found first instead of the later (frontmost) one.
     const ctx = loadHitTest()
     const backRock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
     const frontRock = { type: 'rock', x: 50, y: 30, hitHalfWidth: 5, hitHeight: 5 }
