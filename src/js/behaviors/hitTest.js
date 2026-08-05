@@ -1,7 +1,11 @@
-// Z-order ranking for draggable entity types -- must mirror the draw-order
-// layering in game.js's render pass, back-to-front. Higher rank = drawn on
-// top = should win when multiple draggables overlap the same click point.
-const DRAG_Z_ORDER = { rock: 0, 'treasure-chest': 1, 'bubbler-rock': 2, plant: 3, snail: 4, turtle: 4 };
+// Decor entities (rock, treasure-chest, bubbler-rock, plant) are drawn in a
+// single combined pass in entities-array order (see game.js's draw loop) --
+// that array order is exactly what the long-press settings modal's z-index
+// buttons (bring to front / forward / send backward / to back) manipulate,
+// so hit-testing among decor has to use that same array order too, or
+// "bring to front" wouldn't let you actually grab the thing you just
+// brought to front.
+const DECOR_TYPES = ['rock', 'treasure-chest', 'bubbler-rock', 'plant'];
 
 const isDraggableHit = (ent, tx, ty) => {
   if (ent.type === 'snail' || ent.type === 'turtle') return Math.hypot(ent.x - tx, ent.y - ty) < 3;
@@ -15,23 +19,22 @@ const isDraggableHit = (ent, tx, ty) => {
 };
 
 // Among every entity whose hit-test matches (tx, ty), returns the one drawn
-// on top -- picking the array's first match (as a plain entities.find(...)
-// would) let a background decor item win over something drawn in front of
-// it, whenever the background item just happened to come first in the
-// entities array (e.g. spawned earlier).
-//
-// `>=` (not `>`) on the tie-check matters: two entities of the *same* type
-// (e.g. two overlapping rocks) tie on DRAG_Z_ORDER, and game.js's draw pass
-// (entities.filter(type).forEach(draw)) draws same-type entities in array
-// order, so the later one in the array is the one actually on top. `>`
-// alone would keep whichever same-type entity was found first, which is the
-// opposite of draw order -- exactly the reported "still grabs a background
-// rock" bug.
+// on top. Creatures (snail/turtle) are drawn after all decor regardless of
+// array position (see game.js's draw loop), so a creature always wins a tie
+// against decor. Within the same category (decor-vs-decor or
+// creature-vs-creature), the later array index wins -- it's the one drawn
+// later, so it's the one actually on top.
 const pickTopmostDraggable = (entities, tx, ty) => {
   let best = null;
-  for (const ent of entities) {
-    if (!isDraggableHit(ent, tx, ty)) continue;
-    if (!best || (DRAG_Z_ORDER[ent.type] ?? 0) >= (DRAG_Z_ORDER[best.type] ?? 0)) best = ent;
-  }
+  let bestIndex = -1;
+  entities.forEach((ent, i) => {
+    if (!isDraggableHit(ent, tx, ty)) return;
+    if (!best) { best = ent; bestIndex = i; return; }
+    const entIsDecor = DECOR_TYPES.includes(ent.type);
+    const bestIsDecor = DECOR_TYPES.includes(best.type);
+    if (bestIsDecor && !entIsDecor) { best = ent; bestIndex = i; return; }
+    if (!bestIsDecor && entIsDecor) return;
+    if (i >= bestIndex) { best = ent; bestIndex = i; }
+  });
   return best;
 };
