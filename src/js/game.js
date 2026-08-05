@@ -22,6 +22,7 @@ const saveState = () => {
     entities: entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity),
     lastFeedAt: TANK.lastFeedAt,
     background: TANK.background,
+    achievements: Achievements.serialize(),
   });
 };
 
@@ -31,6 +32,7 @@ const loadState = async () => {
   const data = Array.isArray(raw) ? raw : raw && raw.entities;
   if (raw && !Array.isArray(raw) && raw.lastFeedAt) TANK.lastFeedAt = raw.lastFeedAt;
   if (raw && !Array.isArray(raw) && raw.background === 'black') TANK.background = 'black';
+  Achievements.restore(raw && !Array.isArray(raw) && raw.achievements);
   if (data && data.length) {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
@@ -59,6 +61,7 @@ const loadState = async () => {
 
 setInterval(saveState, 5000);
 window.addEventListener('beforeunload', saveState);
+setInterval(() => Achievements.check(entities), 3000);
 
 function feedAt(cx) {
   cx = Math.max(TANK.x1 + 2, Math.min(TANK.x2 - 2, cx));
@@ -66,6 +69,7 @@ function feedAt(cx) {
     entities.push(createFlake(TANK, cx + (Math.random() - 0.5) * 4));
   }
   TANK.lastFeedAt = Date.now();
+  Achievements.unlock('well-fed');
 }
 
 const SPAWNERS = {
