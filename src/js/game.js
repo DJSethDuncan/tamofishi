@@ -100,6 +100,13 @@ const canvasToTank = (e) => {
 };
 
 let dragged = null;
+// A drag doesn't visibly move anything, and a click doesn't open the chest's
+// settings panel, until the cursor/finger has moved this far from where the
+// press started -- otherwise the tiny, involuntary mouse movement that
+// happens during an ordinary click reads as "the user dragged the chest,"
+// and the settings panel that click was aiming for never opens.
+const DRAG_DEADZONE = 1.5;
+let dragStartX = 0, dragStartY = 0, dragMoved = false;
 
 // Decor settings popup (long-press on any decor item -- rock, treasure
 // chest, bubbler rock, plant): z-index buttons always shown, the intensity
@@ -165,6 +172,8 @@ canvas.addEventListener('mousemove', (e) => {
   const p = canvasToTank(e);
   cursor.x = p.x; cursor.y = p.y;
   if (dragged) {
+    if (!dragMoved && Math.hypot(p.x - dragStartX, p.y - dragStartY) < DRAG_DEADZONE) return;
+    dragMoved = true;
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
     if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest' && dragged.type !== 'bubbler-rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
@@ -186,6 +195,7 @@ canvas.addEventListener('mousedown', (e) => {
   const { x: tx, y: ty } = canvasToTank(e);
   const hit = findDraggable(tx, ty);
   if (hit) {
+    dragStartX = tx; dragStartY = ty; dragMoved = false;
     if (DECOR_TYPES.includes(hit.type)) {
       longPressTimer = setTimeout(() => {
         longPressTimer = null;
@@ -272,6 +282,10 @@ const handleTap = (tx, ty, e) => {
 };
 
 canvas.addEventListener('click', (e) => {
+  // A click that moved something (past DRAG_DEADZONE) was a drag, not a tap
+  // -- e.g. dragging the treasure chest a few pixels shouldn't also open
+  // its settings panel.
+  if (dragMoved) { dragMoved = false; return; }
   const { x: tx, y: ty } = canvasToTank(e);
   handleTap(tx, ty, e);
 });
@@ -284,6 +298,7 @@ canvas.addEventListener('touchstart', (e) => {
   hideDecorPopup();
   const hit = findDraggable(p.x, p.y);
   if (hit) {
+    dragStartX = p.x; dragStartY = p.y; dragMoved = false;
     if (DECOR_TYPES.includes(hit.type)) {
       longPressTimer = setTimeout(() => {
         longPressTimer = null;
@@ -302,6 +317,8 @@ canvas.addEventListener('touchmove', (e) => {
   const p = canvasToTank(e.touches[0]);
   cursor.x = p.x; cursor.y = p.y;
   if (dragged) {
+    if (!dragMoved && Math.hypot(p.x - dragStartX, p.y - dragStartY) < DRAG_DEADZONE) return;
+    dragMoved = true;
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     dragged.x = Math.max(TANK.x1, Math.min(TANK.x2, p.x));
     if (dragged.type !== 'plant' && dragged.type !== 'rock' && dragged.type !== 'treasure-chest' && dragged.type !== 'bubbler-rock') dragged.y = Math.max(TANK.y1, Math.min(TANK.y2, p.y));
@@ -312,13 +329,17 @@ canvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   const p = canvasToTank(e.changedTouches[0]);
   if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  // A real drag (past DRAG_DEADZONE) just repositions the entity and skips
+  // handleTap; a tap that never crossed the deadzone still fires it (e.g.
+  // opens the chest's settings panel), even though `dragged` was set at
+  // touchstart -- capture that before `dragged` gets nulled out below.
+  const wasRealDrag = dragged && dragMoved;
   if (dragged) {
     dragged.dragged = false;
     if (dragged.type === 'snail' || dragged.type === 'turtle') dragged.idle = 2 + Math.random() * 4;
     dragged = null;
-  } else {
-    handleTap(p.x, p.y, e);
   }
+  if (!wasRealDrag) handleTap(p.x, p.y, e);
   cursor.x = -1; cursor.y = -1;
 }, { passive: false });
 
