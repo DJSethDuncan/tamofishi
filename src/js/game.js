@@ -17,20 +17,24 @@ const entities = [];
 
 const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size, phase: e.phase, intensity: e.intensity });
 
+const buildStateObject = () => ({
+  entities: entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity),
+  lastFeedAt: TANK.lastFeedAt,
+  background: TANK.background,
+});
+
 const saveState = () => {
-  tank.save({
-    entities: entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity),
-    lastFeedAt: TANK.lastFeedAt,
-    background: TANK.background,
-  });
+  tank.save(buildStateObject());
 };
 
-const loadState = async () => {
-  const raw = await tank.load();
+// Rebuilds the live tank from a state object (from tank.load() or an
+// imported save file) -- shared by loadState and the LOAD TANK button.
+const applyState = (raw) => {
+  entities.length = 0;
   // Older saves are a bare entity array; newer saves wrap it with lastFeedAt.
   const data = Array.isArray(raw) ? raw : raw && raw.entities;
   if (raw && !Array.isArray(raw) && raw.lastFeedAt) TANK.lastFeedAt = raw.lastFeedAt;
-  if (raw && !Array.isArray(raw) && raw.background === 'black') TANK.background = 'black';
+  TANK.background = (raw && !Array.isArray(raw) && raw.background === 'black') ? 'black' : 'gradient';
   if (data && data.length) {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
@@ -56,6 +60,8 @@ const loadState = async () => {
     entities.push(createTreasureChest(TANK, TANK.x1 + 8 + Math.random() * (TANK.x2 - TANK.x1 - 16)));
   }
 };
+
+const loadState = async () => applyState(await tank.load());
 
 setInterval(saveState, 5000);
 window.addEventListener('beforeunload', saveState);
@@ -413,6 +419,39 @@ document.getElementById('clear').addEventListener('click', () => {
   for (let i = entities.length - 1; i >= 0; i--) {
     if (entities[i].type !== 'flake' && entities[i].type !== 'treasure-chest') entities.splice(i, 1);
   }
+});
+
+document.getElementById('save-tank-btn').addEventListener('click', () => {
+  const name = window.prompt('Name this save:', 'my-tank');
+  if (name === null) return; // cancelled
+  const safeName = name.trim() || 'my-tank';
+  const blob = new Blob([JSON.stringify(buildStateObject(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Tamofishi-${safeName}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+const loadTankInput = document.getElementById('load-tank-input');
+document.getElementById('load-tank-btn').addEventListener('click', () => {
+  loadTankInput.value = '';
+  loadTankInput.click();
+});
+loadTankInput.addEventListener('change', () => {
+  const file = loadTankInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      applyState(JSON.parse(reader.result));
+      saveState();
+    } catch {
+      window.alert('Could not load that file -- not a valid Tamofishi save.');
+    }
+  };
+  reader.readAsText(file);
 });
 
 
