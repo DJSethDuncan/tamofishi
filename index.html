@@ -52,6 +52,7 @@
         <button id="prune-btn" class="btn btn-modal">PRUNE</button>
         <button id="background-btn" class="btn btn-modal">BACKGROUND: GRADIENT</button>
         <button id="clear" class="btn btn-modal">CLEAR TANK</button>
+        <button id="achievements-btn" class="btn btn-modal">ACHIEVEMENTS</button>
         <div id="tip-section" class="hidden">
           <div id="tip-label">— TIP JAR —</div>
           <div id="tip-buttons"></div>
@@ -71,6 +72,17 @@
       <div id="intensity-label">INTENSITY</div>
       <input type="range" id="intensity-range" min="1" max="10" value="5">
     </div>
+  </div>
+  <div id="achievements-modal" class="hidden">
+    <div id="achievements-title">— ACHIEVEMENTS —</div>
+    <div id="achievements-list"></div>
+    <button id="achievements-modal-close" class="btn btn-modal">CLOSE</button>
+  </div>
+  <div id="achievement-unlock-modal" class="hidden">
+    <div id="achievement-unlock-title">ACHIEVEMENT UNLOCKED!</div>
+    <div id="achievement-unlock-name"></div>
+    <div id="achievement-unlock-description"></div>
+    <button id="achievement-unlock-close" class="btn btn-modal">YAY</button>
   </div>
 </div>
 </div>
@@ -97,6 +109,8 @@
 <script src="src/js/entities/treasurechest.js"></script>
 <script src="src/js/entities/bubblerrock.js"></script>
 <script src="src/js/entities/fish.js"></script>
+<script src="src/js/achievement-conditions.js"></script>
+<script src="src/js/achievements.js"></script>
 <script src="src/js/game.js"></script>
 <script src="src/js/tip.js"></script>
 </body>
