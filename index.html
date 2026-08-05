@@ -61,8 +61,16 @@
     <button id="add-panel-close" class="btn btn-modal">CLOSE</button>
   </div>
   <div id="intensity-popup" class="hidden">
-    <div id="intensity-label">BUBBLES</div>
-    <input type="range" id="intensity-range" min="1" max="10" value="5" orient="vertical">
+    <div id="zindex-buttons">
+      <button id="zindex-back-btn" class="btn btn-modal zindex-btn">SEND TO BACK</button>
+      <button id="zindex-front-btn" class="btn btn-modal zindex-btn">BRING TO FRONT</button>
+      <button id="zindex-backward-btn" class="btn btn-modal zindex-btn">SEND BACKWARD</button>
+      <button id="zindex-forward-btn" class="btn btn-modal zindex-btn">BRING FORWARD</button>
+    </div>
+    <div id="intensity-section">
+      <div id="intensity-label">INTENSITY</div>
+      <input type="range" id="intensity-range" min="1" max="10" value="5">
+    </div>
   </div>
 </div>
 </div>
@@ -76,6 +84,7 @@
 <script src="src/js/behaviors/surface.js"></script>
 <script src="src/js/behaviors/mortality.js"></script>
 <script src="src/js/behaviors/hitTest.js"></script>
+<script src="src/js/behaviors/zIndex.js"></script>
 <script src="src/js/behaviors/background.js"></script>
 <script src="src/js/entities/crab.js"></script>
 <script src="src/js/entities/flake.js"></script>

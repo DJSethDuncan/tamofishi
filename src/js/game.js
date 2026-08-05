@@ -97,23 +97,29 @@ const canvasToTank = (e) => {
 
 let dragged = null;
 
-// Intensity slider (long-press on bubbler-rock or treasure-chest)
+// Decor settings popup (long-press on any decor item -- rock, treasure
+// chest, bubbler rock, plant): z-index buttons always shown, the intensity
+// fader only shown for entities that actually have an `intensity` (bubbler
+// rock, treasure chest).
 const intensityPopup = document.getElementById('intensity-popup');
+const intensitySection = document.getElementById('intensity-section');
 const intensityRange = document.getElementById('intensity-range');
-let intensityTarget = null;
+let decorTarget = null;
 let longPressTimer = null;
 const LONG_PRESS_MS = 500;
 
 const sliderToIntensity = (v) => v / 5;
 const intensityToSlider = (i) => Math.round(i * 5);
 
-const showIntensitySlider = (entity) => {
-  intensityTarget = entity;
-  intensityRange.value = intensityToSlider(entity.intensity);
+const showDecorPopup = (entity) => {
+  decorTarget = entity;
+  const hasIntensity = entity.intensity !== undefined;
+  intensitySection.classList.toggle('hidden', !hasIntensity);
+  if (hasIntensity) intensityRange.value = intensityToSlider(entity.intensity);
   const wrap = document.getElementById('tank-wrap');
   const wRect = wrap.getBoundingClientRect();
   const left = (entity.x / W) * wRect.width;
-  const pxLeft = Math.max(4, Math.min(wRect.width - 60, left - 20));
+  const pxLeft = Math.max(4, Math.min(wRect.width - 90, left - 45));
   const pxBottom = wRect.height * (1 - entity.y / H) + 8;
   intensityPopup.style.left = `${pxLeft}px`;
   intensityPopup.style.bottom = `${pxBottom}px`;
@@ -121,18 +127,33 @@ const showIntensitySlider = (entity) => {
   intensityPopup.classList.remove('hidden');
 };
 
-const hideIntensitySlider = () => {
+const hideDecorPopup = () => {
   intensityPopup.classList.add('hidden');
-  intensityTarget = null;
+  decorTarget = null;
 };
 
 intensityRange.addEventListener('input', () => {
-  if (intensityTarget) intensityTarget.intensity = sliderToIntensity(Number(intensityRange.value));
+  if (decorTarget) decorTarget.intensity = sliderToIntensity(Number(intensityRange.value));
+});
+
+// Z-index reordering logic (behaviors/zIndex.js) is pure and DOM-free --
+// this is just the settings-modal button wiring on top of it.
+document.getElementById('zindex-front-btn').addEventListener('click', () => {
+  if (decorTarget) bringDecorToFront(entities, decorTarget);
+});
+document.getElementById('zindex-back-btn').addEventListener('click', () => {
+  if (decorTarget) sendDecorToBack(entities, decorTarget);
+});
+document.getElementById('zindex-forward-btn').addEventListener('click', () => {
+  if (decorTarget) swapDecorWithNeighbor(entities, decorTarget, 1, DECOR_TYPES);
+});
+document.getElementById('zindex-backward-btn').addEventListener('click', () => {
+  if (decorTarget) swapDecorWithNeighbor(entities, decorTarget, -1, DECOR_TYPES);
 });
 
 document.addEventListener('pointerdown', (e) => {
   if (!intensityPopup.classList.contains('hidden') && !intensityPopup.contains(e.target) && e.target !== canvas) {
-    hideIntensitySlider();
+    hideDecorPopup();
   }
 });
 
@@ -157,15 +178,15 @@ const findDraggable = (tx, ty) => pickTopmostDraggable(entities, tx, ty);
 
 canvas.addEventListener('mousedown', (e) => {
   if (murderMode || pruneMode) return;
-  hideIntensitySlider();
+  hideDecorPopup();
   const { x: tx, y: ty } = canvasToTank(e);
   const hit = findDraggable(tx, ty);
   if (hit) {
-    if (hit.type === 'bubbler-rock' || hit.type === 'treasure-chest') {
+    if (DECOR_TYPES.includes(hit.type)) {
       longPressTimer = setTimeout(() => {
         longPressTimer = null;
         if (dragged === hit) { dragged.dragged = false; dragged = null; }
-        showIntensitySlider(hit);
+        showDecorPopup(hit);
       }, LONG_PRESS_MS);
     }
     dragged = hit;
@@ -256,14 +277,14 @@ canvas.addEventListener('touchstart', (e) => {
   const p = canvasToTank(e.touches[0]);
   cursor.x = p.x; cursor.y = p.y;
   if (murderMode || pruneMode) return;
-  hideIntensitySlider();
+  hideDecorPopup();
   const hit = findDraggable(p.x, p.y);
   if (hit) {
-    if (hit.type === 'bubbler-rock' || hit.type === 'treasure-chest') {
+    if (DECOR_TYPES.includes(hit.type)) {
       longPressTimer = setTimeout(() => {
         longPressTimer = null;
         if (dragged === hit) { dragged.dragged = false; dragged = null; }
-        showIntensitySlider(hit);
+        showDecorPopup(hit);
       }, LONG_PRESS_MS);
     }
     dragged = hit;
@@ -535,13 +556,16 @@ function loop(now) {
     accumulator -= FIXED_DT;
   }
   drawTank();
-  entities.filter(e => e.type === 'rock').forEach(e => e.draw(ctx));
-  entities.filter(e => e.type === 'treasure-chest').forEach(e => e.draw(ctx));
-  entities.filter(e => e.type === 'bubbler-rock').forEach(e => e.draw(ctx));
-  entities.filter(e => e.type === 'plant').forEach(e => e.draw(ctx));
+  // Decor (rock/treasure-chest/bubbler-rock/plant) is drawn as one combined
+  // pass in entities-array order, not four separate per-type passes --
+  // that array order IS the z-index the long-press settings modal's
+  // bring-to-front/send-to-back buttons manipulate (see zindex-front-btn
+  // etc. below), so a rock can end up drawn in front of a plant. hitTest.js
+  // relies on this exact same array-order convention for click-testing.
+  entities.filter(e => DECOR_TYPES.includes(e.type)).forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'duckweed').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'flake').forEach(e => e.draw(ctx));
-  entities.filter(e => e.type !== 'flake' && e.type !== 'plant' && e.type !== 'rock' && e.type !== 'duckweed' && e.type !== 'treasure-chest' && e.type !== 'bubbler-rock' && e.type !== 'bubble').forEach(e => e.draw(ctx));
+  entities.filter(e => e.type !== 'flake' && e.type !== 'duckweed' && e.type !== 'bubble' && !DECOR_TYPES.includes(e.type)).forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'bubble').forEach(e => e.draw(ctx));
   // Shockwaves
   for (let i = shockwaves.length - 1; i >= 0; i--) {

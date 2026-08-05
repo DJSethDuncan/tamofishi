@@ -65,16 +65,36 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 #intensity-popup {
   position: absolute; z-index: 25;
   background: #0a1a0a; border: 2px solid #1a5a1a;
-  padding: 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px; display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+  min-width: 170px;
 }
 #intensity-popup.hidden { display: none; }
+
+#zindex-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.zindex-btn { font-size: 9px; padding: 6px 2px; }
+
+#intensity-section { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#intensity-section.hidden { display: none; }
 #intensity-label { color: #33ff33; font-size: 9px; letter-spacing: 2px; }
+
+/* Pixelated to match the rest of the game's blocky, no-antialiasing look --
+   a flat rectangular track and a square, hard-edged thumb instead of the
+   OS's rounded default slider. */
 #intensity-range {
-  writing-mode: vertical-lr; direction: rtl;
-  -webkit-appearance: slider-vertical;
-  width: 24px; height: 60px; cursor: pointer;
-  accent-color: #33ff33;
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px; cursor: pointer;
+  background: #0d3d0d; border: 1px solid #1a5a1a;
 }
+#intensity-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 0;
+  background: #33ff33; border: 1px solid #0a1a0a;
+}
+#intensity-range::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 0;
+  background: #33ff33; border: 1px solid #0a1a0a;
+}
+#intensity-range::-moz-range-track { background: #0d3d0d; height: 10px; }
 
 .btn-modal { flex: none; padding: 8px 16px; text-align: center; }
 
