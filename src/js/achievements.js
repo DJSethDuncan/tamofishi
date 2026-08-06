@@ -64,10 +64,12 @@ const Achievements = (() => {
   });
 
   // Condition checks run periodically against live tank state -- see
-  // game.js's setInterval(Achievements.check, ...).
-  const check = (entities) => {
+  // game.js's setInterval(Achievements.check, ...). `stats` carries the
+  // event-driven counters (births, murders, bubbles, tank age) that aren't
+  // observable from an entities snapshot alone -- see achievement-conditions.js.
+  const check = (entities, stats) => {
     ACHIEVEMENTS.forEach(def => {
-      if (def.condition && def.condition(entities)) unlock(def.id);
+      if (def.condition && def.condition(entities, stats)) unlock(def.id);
     });
   };
 

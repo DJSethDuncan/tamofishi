@@ -160,6 +160,7 @@ const createFish = (tank, x, y) => {
     if (f.sex === 'f' && Math.random() < 0.0000015) {
       const count = 1 + Math.floor(Math.random() * 5);
       for (let i = 0; i < count; i++) entities.push(createFish(tank, f.x + (Math.random() - 0.5) * 2, f.y));
+      tank.stats.fishBorn += count;
     }
     if (f.x <= tank.x1) { f.x = tank.x1; f.vx = Math.abs(f.vx); }
     if (f.x >= tank.x2) { f.x = tank.x2; f.vx = -Math.abs(f.vx); }

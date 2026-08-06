@@ -11,7 +11,20 @@ const COLORS = {
   wall:  '#0d3d0d',
 };
 
-const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5, background: 'gradient' };
+// Fresh defaults for the event-driven achievement counters (see
+// achievement-conditions.js) -- tankCreatedAt is evaluated per-call so a
+// brand-new tank gets "now", while applyState overlays a loaded save's own
+// persisted tankCreatedAt on top of these so it isn't reset on every load.
+const makeDefaultStats = () => ({
+  fishBorn: 0,
+  fishMurdered: 0,
+  turtlesMurdered: 0,
+  bubblesBlown: 0,
+  tankCleared: 0,
+  tankCreatedAt: Date.now(),
+});
+
+const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5, background: 'gradient', stats: makeDefaultStats() };
 
 const entities = [];
 
@@ -22,6 +35,7 @@ const buildStateObject = () => ({
   lastFeedAt: TANK.lastFeedAt,
   background: TANK.background,
   achievements: Achievements.serialize(),
+  stats: TANK.stats,
 });
 
 const saveState = () => {
@@ -37,6 +51,8 @@ const applyState = (raw) => {
   if (raw && !Array.isArray(raw) && raw.lastFeedAt) TANK.lastFeedAt = raw.lastFeedAt;
   TANK.background = (raw && !Array.isArray(raw) && raw.background === 'black') ? 'black' : 'gradient';
   Achievements.restore(raw && !Array.isArray(raw) && raw.achievements);
+  const savedStats = raw && !Array.isArray(raw) && raw.stats;
+  TANK.stats = savedStats ? { ...makeDefaultStats(), ...savedStats } : makeDefaultStats();
   if (data && data.length) {
     data.forEach(s => {
       if (s.type === 'fish') { const f = createFish(TANK, s.x, s.y); f.sex = s.sex; f.age = s.age || 0; entities.push(f); }
@@ -67,7 +83,7 @@ const loadState = async () => applyState(await tank.load());
 
 setInterval(saveState, 5000);
 window.addEventListener('beforeunload', saveState);
-setInterval(() => Achievements.check(entities), 3000);
+setInterval(() => Achievements.check(entities, TANK.stats), 3000);
 
 function feedAt(cx) {
   cx = Math.max(TANK.x1 + 2, Math.min(TANK.x2 - 2, cx));
@@ -244,6 +260,8 @@ const handleTap = (tx, ty, e) => {
     // Treasure chests can't be removed, murder mode included.
     const hit = entities.find(ent => ent.type !== 'flake' && ent.type !== 'treasure-chest' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
     if (hit) {
+      if (hit.type === 'fish') TANK.stats.fishMurdered++;
+      if (hit.type === 'turtle') TANK.stats.turtlesMurdered++;
       shockwaves.push({ x: hit.x, y: hit.y, r: 0, life: 1 });
       hit.dead = 900;
       entities.forEach(e => {
@@ -465,6 +483,7 @@ document.getElementById('clear').addEventListener('click', () => {
   for (let i = entities.length - 1; i >= 0; i--) {
     if (entities[i].type !== 'flake' && entities[i].type !== 'treasure-chest') entities.splice(i, 1);
   }
+  TANK.stats.tankCleared++;
 });
 
 document.getElementById('save-tank-btn').addEventListener('click', () => {

@@ -6,7 +6,7 @@ import { createContext, runInContext } from 'vm'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
 
-const makeTank = () => ({ x1: 2, y1: 2, x2: 177, y2: 55 })
+const makeTank = () => ({ x1: 2, y1: 2, x2: 177, y2: 55, stats: { fishBorn: 0 } })
 
 function loadFishCtx(fixedRandom = 0) {
   const m = Object.create(Math, {

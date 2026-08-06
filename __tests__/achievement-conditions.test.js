@@ -67,4 +67,85 @@ describe('achievement conditions', () => {
     const ids = achievements.map(a => a.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
+
+  describe('concurrent-count achievements', () => {
+    test('escargogogo requires 25 snails present at the same time', () => {
+      const achievements = loadConditions()
+      const def = byId(achievements, 'escargogogo')
+      const snails = (n) => Array.from({ length: n }, () => ({ type: 'snail' }))
+      expect(def.condition(snails(24))).toBe(false)
+      expect(def.condition(snails(25))).toBe(true)
+    })
+
+    test('dwayne (10 rocks) and amaze-x3 (25 rocks) are independent tiers on the same stat', () => {
+      const achievements = loadConditions()
+      const dwayne = byId(achievements, 'dwayne')
+      const amaze = byId(achievements, 'amaze-x3')
+      const rocks = (n) => Array.from({ length: n }, () => ({ type: 'rock' }))
+      expect(dwayne.condition(rocks(10))).toBe(true)
+      expect(amaze.condition(rocks(10))).toBe(false)
+      expect(amaze.condition(rocks(25))).toBe(true)
+    })
+  })
+
+  describe('event-driven stat achievements', () => {
+    test('fish-born tiers key off stats.fishBorn, not the current entity count', () => {
+      const achievements = loadConditions()
+      const def = byId(achievements, 'fish-born-50')
+      // REGRESSION-SHAPED: a tank with zero fish present right now can still
+      // have this unlocked, since it tracks a lifetime counter, not a
+      // concurrent-count snapshot like escargogogo above.
+      expect(def.condition([], { fishBorn: 49 })).toBe(false)
+      expect(def.condition([], { fishBorn: 50 })).toBe(true)
+    })
+
+    test('fish-murdered and turtles-murdered (shredder) read separate counters', () => {
+      const achievements = loadConditions()
+      const fishMurdered = byId(achievements, 'fish-murdered-10')
+      const shredder = byId(achievements, 'shredder')
+      expect(fishMurdered.condition([], { fishMurdered: 9, turtlesMurdered: 4 })).toBe(false)
+      expect(fishMurdered.condition([], { fishMurdered: 10, turtlesMurdered: 0 })).toBe(true)
+      expect(shredder.condition([], { fishMurdered: 0, turtlesMurdered: 4 })).toBe(true)
+    })
+
+    test('oh-the-humanity reads stats.bubblesBlown', () => {
+      const achievements = loadConditions()
+      const def = byId(achievements, 'oh-the-humanity')
+      expect(def.condition([], { bubblesBlown: 9999 })).toBe(false)
+      expect(def.condition([], { bubblesBlown: 10000 })).toBe(true)
+    })
+
+    test('no-future (clear a tank) reads stats.tankCleared', () => {
+      const achievements = loadConditions()
+      const def = byId(achievements, 'no-future')
+      expect(def.condition([], { tankCleared: 0 })).toBe(false)
+      expect(def.condition([], { tankCleared: 1 })).toBe(true)
+    })
+
+    test('stat-based conditions do not throw when stats is undefined', () => {
+      // REGRESSION-SHAPED: Achievements.check(entities) is called with only
+      // one argument in a couple of older call sites/tests -- these
+      // conditions must not crash on a missing second argument.
+      const achievements = loadConditions()
+      expect(() => byId(achievements, 'fish-born-50').condition([])).not.toThrow()
+      expect(() => byId(achievements, 'shredder').condition([])).not.toThrow()
+      expect(() => byId(achievements, 'oh-the-humanity').condition([])).not.toThrow()
+      expect(() => byId(achievements, 'no-future').condition([])).not.toThrow()
+    })
+  })
+
+  describe('tank-age achievements', () => {
+    test('tank-age-1 unlocks once a full day has passed since tankCreatedAt', () => {
+      const achievements = loadConditions()
+      const def = byId(achievements, 'tank-age-1')
+      const now = Date.now()
+      expect(def.condition([], { tankCreatedAt: now - 23 * 3600 * 1000 })).toBe(false)
+      expect(def.condition([], { tankCreatedAt: now - 25 * 3600 * 1000 })).toBe(true)
+    })
+
+    test('tank-age conditions do not throw when tankCreatedAt is missing', () => {
+      const achievements = loadConditions()
+      expect(byId(achievements, 'tank-age-1').condition([], {})).toBe(false)
+    })
+  })
 })
