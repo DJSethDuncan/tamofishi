@@ -174,15 +174,19 @@ intensityRange.addEventListener('input', () => {
 // this is just the settings-modal button wiring on top of it.
 document.getElementById('zindex-front-btn').addEventListener('click', () => {
   if (decorTarget) bringDecorToFront(entities, decorTarget);
+  hideDecorPopup();
 });
 document.getElementById('zindex-back-btn').addEventListener('click', () => {
   if (decorTarget) sendDecorToBack(entities, decorTarget);
+  hideDecorPopup();
 });
 document.getElementById('zindex-forward-btn').addEventListener('click', () => {
   if (decorTarget) swapDecorWithNeighbor(entities, decorTarget, 1, DECOR_TYPES);
+  hideDecorPopup();
 });
 document.getElementById('zindex-backward-btn').addEventListener('click', () => {
   if (decorTarget) swapDecorWithNeighbor(entities, decorTarget, -1, DECOR_TYPES);
+  hideDecorPopup();
 });
 
 document.addEventListener('pointerdown', (e) => {
