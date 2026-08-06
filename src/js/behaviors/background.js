@@ -1,6 +1,6 @@
 // All selectable backdrop values, in cycle order -- BACKGROUND_LABELS keys
 // off the same list so the button and save/load validation never drift.
-const BACKDROP_OPTIONS = ['gradient', 'black', 'undersea', 'rocks', 'shipwreck', 'plane'];
+const BACKDROP_OPTIONS = ['gradient', 'black', 'undersea', 'rocks', 'shipwreck'];
 
 const BACKGROUND_LABELS = {
   gradient: 'GRADIENT',
@@ -198,57 +198,5 @@ const drawBackdropElements = (ctx, background, tank) => {
       ctx.fillStyle = i % 6 === 0 ? GREEN.bright : GREEN.dark;
       for (let j = 0; j < tuftH; j++) ctx.fillRect(x1 + i, y2 - j, 1, 1);
     }
-  } else if (background === 'plane') {
-    // A wide-wingspan twin-engine wreck resting on the floor, with a
-    // separate broken-off tail fin behind it and scattered debris rocks --
-    // matching the dive-photo composition (wings dominate the silhouette,
-    // not a generic side-view plane).
-    const wingSpan = Math.max(60, Math.round(w * 0.7));
-    const wingX = x1 + Math.round((w - wingSpan) / 2);
-    const wingY = y2 - Math.round(h * 0.16);
-    const fuseLen = Math.round(wingSpan * 0.55);
-    const fuseX = x1 + Math.round(w / 2) - Math.round(fuseLen / 2);
-
-    // Wings (wide, slightly tapered)
-    ctx.fillStyle = GREEN.mid;
-    for (let i = 0; i < wingSpan; i++) {
-      const distFromCenter = Math.abs(i - wingSpan / 2) / (wingSpan / 2);
-      const wingH = Math.max(2, Math.round(5 * (1 - distFromCenter * 0.5)));
-      ctx.fillRect(wingX + i, wingY - Math.floor(wingH / 2), 1, wingH);
-    }
-    // Engine nacelles bulging from each wing
-    [0.28, 0.72].forEach((f) => {
-      const ex = wingX + Math.round(wingSpan * f);
-      ctx.fillStyle = GREEN.dark;
-      ctx.fillRect(ex - 1, wingY - 2, 3, 5);
-      ctx.fillStyle = GREEN.light;
-      ctx.fillRect(ex, wingY - 2, 1, 1); // prop hub highlight
-    });
-
-    // Fuselage running perpendicular through the wing line
-    ctx.fillStyle = GREEN.dark;
-    for (let i = 0; i < fuseLen; i++) {
-      const noseTaper = i > fuseLen - 5 ? (fuseLen - i) : 4;
-      ctx.fillRect(fuseX + i, wingY - Math.floor(noseTaper / 2), 1, Math.max(2, noseTaper));
-    }
-    // Cockpit highlight near the nose
-    ctx.fillStyle = GREEN.bright;
-    ctx.fillRect(fuseX + fuseLen - 4, wingY - 1, 2, 1);
-
-    // Broken-off tail fin, resting separately behind/beside the main body
-    const tailX = fuseX - 10;
-    const tailY = wingY + 2;
-    ctx.fillStyle = GREEN.mid;
-    for (let j = 0; j < 6; j++) ctx.fillRect(tailX + Math.floor(j / 2), tailY - j, 2, 1);
-
-    // Scattered debris rocks on the floor around the wreck
-    ctx.fillStyle = GREEN.dark;
-    [-14, wingSpan + 8, Math.round(wingSpan * 0.15)].forEach((off) => {
-      const dx = wingX + off;
-      ctx.fillRect(dx, y2 - 1, 3, 2);
-      ctx.fillStyle = GREEN.light;
-      ctx.fillRect(dx + 1, y2 - 2, 1, 1);
-      ctx.fillStyle = GREEN.dark;
-    });
-  }
+  } 
 };
