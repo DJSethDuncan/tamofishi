@@ -16,7 +16,7 @@ function loadEntity(file, fixedRandom) {
   return ctx
 }
 
-const makeTank = () => ({ x1: 2, y1: 2, x2: 177, y2: 55 })
+const makeTank = () => ({ x1: 2, y1: 2, x2: 177, y2: 55, stats: { bubblesBlown: 0 } })
 
 describe('createBubblerRock', () => {
   test('type is bubbler-rock', () => {
