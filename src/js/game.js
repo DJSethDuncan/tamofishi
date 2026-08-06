@@ -49,7 +49,8 @@ const applyState = (raw) => {
   // Older saves are a bare entity array; newer saves wrap it with lastFeedAt.
   const data = Array.isArray(raw) ? raw : raw && raw.entities;
   if (raw && !Array.isArray(raw) && raw.lastFeedAt) TANK.lastFeedAt = raw.lastFeedAt;
-  TANK.background = (raw && !Array.isArray(raw) && raw.background === 'black') ? 'black' : 'gradient';
+  const savedBackground = raw && !Array.isArray(raw) && raw.background;
+  TANK.background = BACKDROP_OPTIONS.includes(savedBackground) ? savedBackground : 'gradient';
   Achievements.restore(raw && !Array.isArray(raw) && raw.achievements);
   const savedStats = raw && !Array.isArray(raw) && raw.stats;
   TANK.stats = savedStats ? { ...makeDefaultStats(), ...savedStats } : makeDefaultStats();
@@ -466,10 +467,11 @@ document.getElementById('murder-btn').addEventListener('click', () => {
 });
 const backgroundBtn = document.getElementById('background-btn');
 const updateBackgroundBtnLabel = () => {
-  backgroundBtn.textContent = `BACKGROUND: ${TANK.background === 'black' ? 'BLACK' : 'GRADIENT'}`;
+  backgroundBtn.textContent = `BACKGROUND: ${BACKGROUND_LABELS[TANK.background] || 'GRADIENT'}`;
 };
 backgroundBtn.addEventListener('click', () => {
-  TANK.background = TANK.background === 'black' ? 'gradient' : 'black';
+  const i = BACKDROP_OPTIONS.indexOf(TANK.background);
+  TANK.background = BACKDROP_OPTIONS[(i + 1) % BACKDROP_OPTIONS.length];
   updateBackgroundBtnLabel();
   saveState();
 });
@@ -574,6 +576,10 @@ function drawTank() {
     ctx.fillStyle = waterRowColor(TANK.background, row, tankH);
     ctx.fillRect(TANK.x1, TANK.y1 + row, tankW, 1);
   }
+
+  // Themed backdrop silhouettes (rocks/undersea/shipwreck/plane) layer on
+  // top of the water fill, behind the sand and all entities.
+  drawBackdropElements(ctx, TANK.background, TANK);
 
   ctx.fillStyle = COLORS.sand;
   for (let x = TANK.x1; x <= TANK.x2; x++) {
