@@ -25,16 +25,36 @@ const waterRowColor = (background, row, tankH) => {
   return `rgb(${r},${g},${b})`;
 };
 
-// Draws a single triangular rock silhouette mound, base-anchored at baseY.
-const drawRockMound = (ctx, cx, baseY, width, height, color) => {
-  ctx.fillStyle = color;
-  const half = Math.floor(width / 2);
-  for (let i = 0; i < width; i++) {
-    const colH = Math.round(height * (1 - Math.abs(i - half) / half));
-    for (let j = 0; j < colH; j++) {
-      ctx.fillRect(cx - half + i, baseY - j, 1, 1);
-    }
+// Every backdrop-scene color is drawn from this single green ramp -- the
+// game's whole palette (COLORS in game.js, entity colors) is strictly
+// green-hued, so scene elements stay on-theme by construction rather than
+// by convention. Also gives each theme real shading depth (a rock face vs.
+// its shadow, a hull plank vs. its seam) using only lightness, never a hue
+// shift.
+const GREEN = {
+  darkest: 'rgb(9,36,12)',
+  dark:    'rgb(17,58,20)',
+  mid:     'rgb(28,86,31)',
+  light:   'rgb(46,122,49)',
+  bright:  'rgb(68,160,71)',
+  brightest: 'rgb(96,200,98)',
+};
+
+// Draws a single blocky, faceted "boulder" -- an irregular hexagon-ish
+// shape rather than a rectangle, so a wall of them reads as stacked stone
+// rather than a grid of tiles.
+const drawBoulder = (ctx, cx, cy, w, hgt, fill, edge) => {
+  const halfW = Math.floor(w / 2);
+  const halfH = Math.floor(hgt / 2);
+  ctx.fillStyle = fill;
+  for (let dy = -halfH; dy <= halfH; dy++) {
+    const rowShrink = Math.abs(dy) === halfH ? 1 : 0;
+    ctx.fillRect(cx - halfW + rowShrink, cy + dy, w - rowShrink * 2, 1);
   }
+  // Faceted edge highlight along the top-left, shadow along bottom-right.
+  ctx.fillStyle = edge;
+  ctx.fillRect(cx - halfW + 1, cy - halfH, w - 2, 1);
+  ctx.fillRect(cx - halfW, cy - halfH + 1, 1, hgt - 2);
 };
 
 // Scene elements layered over the water fill (after waterRowColor, before
@@ -42,61 +62,193 @@ const drawRockMound = (ctx, cx, baseY, width, height, color) => {
 // extra here -- they're the plain water-only options that already existed
 // before this task.
 //
-// REGRESSION-SHAPED: the first version of this function used colors nearly
-// identical to the water gradient itself (e.g. rock 'rgb(19,44,19)' vs. a
-// gradient top of 'rgb(11,43,11)' -- an 8-unit difference on the two
-// channels that matter most for perceived brightness). Verified against
-// the actual rendered pixels (via node-canvas) that this made every themed
-// backdrop essentially invisible against the water -- "muted" per the task
-// description means restrained relative to the vivid fish/plant colors
-// (e.g. '#33ff33'), not literally the same color as the background it's
-// supposed to sit on top of. These use distinct, muted-but-visible hues
-// (grey-brown stone/wood/metal tones, and a richer olive kelp green) that
-// read clearly as shapes while still staying well below the fish palette's
-// saturation and brightness.
+// Each theme is a pixel-mapped reduction of the actual reference photo Seth
+// attached to the "Add more backdrops" Todoist comments, not an invented
+// scene: undersea = surface light shafts + caustic sparkle (not kelp --
+// the reference has no visible kelp, just god-rays through open water);
+// rocks = a dense stacked-boulder wall with fern tufts in the cracks;
+// shipwreck = a listing hull with two rigged masts, framed by dense
+// grass/coral silhouettes along the bottom (ship + grass only, explicitly
+// no fish/dolphin, per the task's own note on that image); plane = a
+// wide-wingspan twin-engine wreck resting on the floor with a separate
+// broken-off tail fin and scattered debris, matching the dive-photo
+// composition rather than a generic side-view silhouette.
+//
+// REGRESSION-SHAPED (three times now): v1's colors were nearly identical
+// to the water gradient (invisible). v2 fixed contrast but drifted off the
+// game's green-only palette (grey stone, brown wood, blue-grey metal). v3
+// (this version) also expands every element's footprint and detail level
+// -- v1/v2 were both too small/sparse to read as real scenery at the
+// tank's actual size. Every color here comes from the GREEN ramp above.
 const drawBackdropElements = (ctx, background, tank) => {
   const { x1, y1, x2, y2 } = tank;
   const w = x2 - x1 + 1;
+  const h = y2 - y1 + 1;
 
-  if (background === 'rocks') {
-    drawRockMound(ctx, x1 + Math.round(w * 0.18), y2, 7, 5, 'rgb(64,80,58)');
-    drawRockMound(ctx, x1 + Math.round(w * 0.52), y2, 11, 9, 'rgb(50,64,46)');
-    drawRockMound(ctx, x1 + Math.round(w * 0.82), y2, 6, 4, 'rgb(70,88,64)');
-  } else if (background === 'undersea') {
-    ctx.fillStyle = 'rgb(38,110,58)';
-    for (let i = 0; i < 6; i++) {
-      const bx = x1 + Math.round(w * (0.08 + i * 0.17));
-      const kelpH = 7 + (i % 3) * 3;
-      for (let j = 0; j < kelpH; j++) {
-        const sway = Math.round(Math.sin(j * 0.6 + i) * 1);
-        ctx.fillRect(bx + sway, y2 - j, 1, 1);
+  if (background === 'undersea') {
+    // God-rays fanning down from the surface, per the reference photo --
+    // a handful of wide, soft-edged light columns, brightest near the top
+    // and fading with depth, plus a band of caustic sparkle just under
+    // the surface.
+    const rayCount = 5;
+    for (let r = 0; r < rayCount; r++) {
+      const topX = x1 + Math.round(w * (0.15 + r * 0.18));
+      const rayW = 5 + (r % 2) * 3;
+      const drift = 0.35 + (r % 3) * 0.15;
+      for (let row = 0; row < h; row++) {
+        const fade = 1 - row / h;
+        if (fade < 0.08) continue;
+        const shade = fade > 0.7 ? GREEN.bright : (fade > 0.4 ? GREEN.mid : GREEN.dark);
+        const cx = topX + Math.round(row * drift);
+        const rowW = Math.max(1, Math.round(rayW * fade));
+        ctx.fillStyle = shade;
+        ctx.fillRect(cx - Math.floor(rowW / 2), y1 + row, rowW, 1);
       }
     }
-  } else if (background === 'shipwreck') {
-    // Hull + mast only, per the task's explicit "not the fish" constraint --
-    // no decorative fish shapes here, just the wreck structure and grass.
-    ctx.fillStyle = 'rgb(80,62,44)';
-    const hullW = Math.max(6, Math.round(w * 0.5));
-    const hullX = x1 + Math.round(w * 0.25);
-    const hullY = y2 - 4;
-    for (let i = 0; i < hullW; i++) ctx.fillRect(hullX + i, hullY, 1, 3);
-    for (let i = 0; i < hullW; i++) {
-      if (i < 3 || i > hullW - 4) ctx.fillRect(hullX + i, hullY + 3, 1, 1);
+    // Caustic sparkle band near the surface.
+    ctx.fillStyle = GREEN.brightest;
+    for (let i = 0; i < 24; i++) {
+      const sx = x1 + Math.round(w * ((i * 53) % 100) / 100);
+      const sy = y1 + Math.round(h * 0.05) + ((i * 17) % Math.max(1, Math.round(h * 0.1)));
+      ctx.fillRect(sx, sy, 1, 1);
     }
-    const mastX = hullX + Math.round(hullW * 0.6);
-    for (let j = 0; j < 8; j++) ctx.fillRect(mastX, hullY - j, 1, 1);
+  } else if (background === 'rocks') {
+    // A dense wall of stacked, faceted boulders (per the reference photo's
+    // rock-wall texture) covering most of the tank width and a third of
+    // its height, with small bright fern tufts sprouting from the cracks.
+    const rows = 3;
+    const rowH = Math.max(5, Math.round(h * 0.11));
+    for (let row = 0; row < rows; row++) {
+      const rowY = y2 - Math.round(rowH * 0.5) - row * (rowH - 1);
+      const boulderCount = 6 + row;
+      const shades = [
+        [GREEN.darkest, GREEN.dark],
+        [GREEN.dark, GREEN.mid],
+        [GREEN.mid, GREEN.light],
+      ];
+      const [fill, edge] = shades[row % shades.length];
+      for (let i = 0; i < boulderCount; i++) {
+        const bw = 8 + ((i * 7 + row * 3) % 6);
+        const bx = x1 + Math.round((w / boulderCount) * (i + 0.5)) + (row % 2 === 0 ? 0 : Math.round(w / boulderCount / 2));
+        drawBoulder(ctx, bx, rowY, bw, rowH, fill, edge);
+      }
+    }
+    // Fern tufts between the cracks, bright accent green.
+    ctx.fillStyle = GREEN.brightest;
+    for (let i = 0; i < 6; i++) {
+      const fx = x1 + Math.round(w * (0.1 + i * 0.15));
+      const fy = y2 - rowH * 2;
+      ctx.fillRect(fx, fy, 1, 3);
+      ctx.fillRect(fx - 1, fy, 1, 1);
+      ctx.fillRect(fx + 1, fy, 1, 1);
+    }
+  } else if (background === 'shipwreck') {
+    // A large listing hull with two rigged masts and cross-yards, framed
+    // by dense grass/coral silhouettes along the bottom -- ship + grass
+    // only, per the task's explicit "not the fish" note on this image.
+    const hullW = Math.max(26, Math.round(w * 0.42));
+    const hullH = Math.max(7, Math.round(h * 0.16));
+    const hullX = x1 + Math.round(w * 0.12);
+    const tilt = Math.round(hullH * 0.35); // listing to one side
+    const hullY = y2 - hullH + 1;
 
-    ctx.fillStyle = 'rgb(44,120,44)';
-    for (let i = -3; i < hullW + 3; i++) {
-      if (((i + hullX) % 3) === 0) ctx.fillRect(hullX + i, y2, 1, 2);
+    ctx.fillStyle = GREEN.mid;
+    for (let i = 0; i < hullW; i++) {
+      const colTilt = Math.round(tilt * (i / hullW));
+      ctx.fillRect(hullX + i, hullY - colTilt, 1, hullH);
+    }
+    // Plank seams (darker rows) for texture.
+    ctx.fillStyle = GREEN.dark;
+    for (let i = 0; i < hullW; i++) {
+      const colTilt = Math.round(tilt * (i / hullW));
+      for (let row = 2; row < hullH; row += 2) ctx.fillRect(hullX + i, hullY - colTilt + row, 1, 1);
+    }
+    // Deck highlight along the top edge, following the same tilt.
+    ctx.fillStyle = GREEN.bright;
+    for (let i = 2; i < hullW - 2; i++) {
+      const colTilt = Math.round(tilt * (i / hullW));
+      ctx.fillRect(hullX + i, hullY - colTilt, 1, 1);
+    }
+
+    // Two masts with cross-yards and tattered rigging lines, per the
+    // reference's multi-mast silhouette.
+    const mastXs = [hullX + Math.round(hullW * 0.3), hullX + Math.round(hullW * 0.62)];
+    const mastHs = [Math.round(h * 0.75), Math.round(h * 0.55)];
+    mastXs.forEach((mastX, mi) => {
+      const mastTop = hullY - mastHs[mi];
+      ctx.fillStyle = GREEN.dark;
+      for (let j = 0; j < mastHs[mi]; j++) ctx.fillRect(mastX, hullY - j, 1, 1);
+      // Cross-yard near the top
+      ctx.fillStyle = GREEN.mid;
+      const yardW = 5 - mi;
+      for (let i = -yardW; i <= yardW; i++) if (i !== 0) ctx.fillRect(mastX + i, mastTop + 2, 1, 1);
+      // A couple of tattered rigging lines drooping from the yard
+      ctx.fillStyle = GREEN.darkest;
+      for (let k = 0; k < 4; k++) {
+        ctx.fillRect(mastX - yardW + 1, mastTop + 3 + k, 1, 1);
+        ctx.fillRect(mastX + yardW - 1, mastTop + 3 + k, 1, 1);
+      }
+    });
+
+    // Dense grass/coral silhouettes framing the base, varying tuft heights
+    // and two shades, spanning the full tank width (not just around the
+    // hull) to match the reference's bottom-edge framing.
+    for (let i = 0; i < w; i += 2) {
+      const tuftH = 2 + ((i * 11) % 5);
+      ctx.fillStyle = i % 6 === 0 ? GREEN.bright : GREEN.dark;
+      for (let j = 0; j < tuftH; j++) ctx.fillRect(x1 + i, y2 - j, 1, 1);
     }
   } else if (background === 'plane') {
-    ctx.fillStyle = 'rgb(76,86,92)';
-    const bodyLen = Math.max(8, Math.round(w * 0.35));
-    const bodyX = x1 + Math.round(w * 0.3);
-    const bodyY = y2 - 6;
-    for (let i = 0; i < bodyLen; i++) ctx.fillRect(bodyX + i, bodyY, 1, 2);
-    for (let i = 0; i < 8; i++) ctx.fillRect(bodyX + Math.round(bodyLen * 0.4) - 4 + i, bodyY + 2, 1, 1);
-    ctx.fillRect(bodyX + bodyLen - 1, bodyY - 2, 1, 2);
+    // A wide-wingspan twin-engine wreck resting on the floor, with a
+    // separate broken-off tail fin behind it and scattered debris rocks --
+    // matching the dive-photo composition (wings dominate the silhouette,
+    // not a generic side-view plane).
+    const wingSpan = Math.max(60, Math.round(w * 0.7));
+    const wingX = x1 + Math.round((w - wingSpan) / 2);
+    const wingY = y2 - Math.round(h * 0.16);
+    const fuseLen = Math.round(wingSpan * 0.55);
+    const fuseX = x1 + Math.round(w / 2) - Math.round(fuseLen / 2);
+
+    // Wings (wide, slightly tapered)
+    ctx.fillStyle = GREEN.mid;
+    for (let i = 0; i < wingSpan; i++) {
+      const distFromCenter = Math.abs(i - wingSpan / 2) / (wingSpan / 2);
+      const wingH = Math.max(2, Math.round(5 * (1 - distFromCenter * 0.5)));
+      ctx.fillRect(wingX + i, wingY - Math.floor(wingH / 2), 1, wingH);
+    }
+    // Engine nacelles bulging from each wing
+    [0.28, 0.72].forEach((f) => {
+      const ex = wingX + Math.round(wingSpan * f);
+      ctx.fillStyle = GREEN.dark;
+      ctx.fillRect(ex - 1, wingY - 2, 3, 5);
+      ctx.fillStyle = GREEN.light;
+      ctx.fillRect(ex, wingY - 2, 1, 1); // prop hub highlight
+    });
+
+    // Fuselage running perpendicular through the wing line
+    ctx.fillStyle = GREEN.dark;
+    for (let i = 0; i < fuseLen; i++) {
+      const noseTaper = i > fuseLen - 5 ? (fuseLen - i) : 4;
+      ctx.fillRect(fuseX + i, wingY - Math.floor(noseTaper / 2), 1, Math.max(2, noseTaper));
+    }
+    // Cockpit highlight near the nose
+    ctx.fillStyle = GREEN.bright;
+    ctx.fillRect(fuseX + fuseLen - 4, wingY - 1, 2, 1);
+
+    // Broken-off tail fin, resting separately behind/beside the main body
+    const tailX = fuseX - 10;
+    const tailY = wingY + 2;
+    ctx.fillStyle = GREEN.mid;
+    for (let j = 0; j < 6; j++) ctx.fillRect(tailX + Math.floor(j / 2), tailY - j, 2, 1);
+
+    // Scattered debris rocks on the floor around the wreck
+    ctx.fillStyle = GREEN.dark;
+    [-14, wingSpan + 8, Math.round(wingSpan * 0.15)].forEach((off) => {
+      const dx = wingX + off;
+      ctx.fillRect(dx, y2 - 1, 3, 2);
+      ctx.fillStyle = GREEN.light;
+      ctx.fillRect(dx + 1, y2 - 2, 1, 1);
+      ctx.fillStyle = GREEN.dark;
+    });
   }
 };

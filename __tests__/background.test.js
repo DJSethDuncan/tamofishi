@@ -97,20 +97,27 @@ describe('drawBackdropElements', () => {
     }
   )
 
-  test('shipwreck draws no fish-shaped decoration -- only the hull/mast/grass elements', () => {
+  test('shipwreck (and every other themed backdrop) only ever uses colors from the GREEN ramp', () => {
     // The task explicitly said "only use the ship and grass, not the fish"
-    // -- this asserts the function only ever sets one of the three known
-    // wreck-scene colors, never introduces an unrelated fourth color that
-    // would imply a separate decorative creature shape.
+    // for shipwreck, and separately (in follow-up feedback) that every
+    // backdrop must stay strictly green-hued, no other hues -- this
+    // asserts every fillStyle used across all four themes is one of the
+    // GREEN ramp's own values, never an introduced grey/brown/blue tone
+    // (which would imply an off-theme or unrelated decorative element).
     const ctx = loadBackground()
-    const seenColors = new Set()
-    const mockCtx = {
-      pixels: [],
-      set fillStyle(c) { this._c = c; seenColors.add(c) },
-      get fillStyle() { return this._c },
-      fillRect(x, y, w, h) { this.pixels.push({ x, y, w, h, color: this._c }) },
+    const greenValues = new Set(Object.values(ctx.GREEN))
+    for (const theme of ['undersea', 'rocks', 'shipwreck', 'plane']) {
+      const seenColors = new Set()
+      const mockCtx = {
+        pixels: [],
+        set fillStyle(c) { this._c = c; seenColors.add(c) },
+        get fillStyle() { return this._c },
+        fillRect(x, y, w, h) { this.pixels.push({ x, y, w, h, color: this._c }) },
+      }
+      ctx.drawBackdropElements(mockCtx, theme, tank)
+      for (const color of seenColors) {
+        expect(greenValues.has(color)).toBe(true)
+      }
     }
-    ctx.drawBackdropElements(mockCtx, 'shipwreck', tank)
-    expect(seenColors.size).toBe(2) // hull+mast share one color, grass is the other
   })
 })
