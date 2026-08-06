@@ -44,6 +44,7 @@ const createCrab = (tank, x, y) => {
   };
 
   c.update = (dt, entities) => {
+    const wasClimbing = c.climbing;
     if (checkNudge(c, entities)) {
       const r = Math.random();
       if (r < 0.2) startPanic(c);
@@ -116,8 +117,13 @@ const createCrab = (tank, x, y) => {
     const surfY = c._surfY;
     if (c.y >= surfY) { c.y = surfY; c.vy = 0; c.climbing = false; c.vx *= 0.85; if (!c.idle) c.idle = 0.3 + Math.random() * 1.5; }
     if (c.y <= tank.y1) { c.y = tank.y1; c.vy = Math.abs(c.vy) * 0.3; }
-    if (c.x <= tank.x1) { c.x = tank.x1; if (!c.climbing && onFloor(entities)) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = Math.abs(c.vx); } }
-    if (c.x >= tank.x2) { c.x = tank.x2; if (!c.climbing && onFloor(entities)) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = -Math.abs(c.vx); } }
+    // wasClimbing (not the live c.climbing) gates the climb-start below: a crab
+    // that just climbed down and landed on the floor this same frame already has
+    // c.climbing === false by this point, and is still sitting at x1/x2 -- without
+    // this guard it would immediately re-enter climbing and never actually reach
+    // the floor, stuck oscillating forever in the corner.
+    if (c.x <= tank.x1) { c.x = tank.x1; if (!wasClimbing && onFloor(entities)) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = Math.abs(c.vx); } }
+    if (c.x >= tank.x2) { c.x = tank.x2; if (!wasClimbing && onFloor(entities)) { c.climbing = true; c.vx = 0; c.vy = -0.04; c.idle = 0.5; } else if (!c.climbing) { c.vx = -Math.abs(c.vx); } }
   };
 
   c.draw = (ctx) => {
