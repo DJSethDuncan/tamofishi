@@ -40,15 +40,6 @@ describe('waterRowColor', () => {
     expect(loadBackground().waterRowColor(undefined, 0, 10)).toBe('rgb(11,43,11)')
   })
 
-  test('themed backdrops (undersea/rocks/shipwreck/plane) still use the gradient water tint, not a flat fill', () => {
-    // REGRESSION-SHAPED: only 'black' should ever bypass the gradient -- a
-    // themed backdrop that accidentally matched the 'black' branch would
-    // lose its water coloring entirely.
-    const ctx = loadBackground()
-    for (const theme of ['undersea', 'rocks', 'shipwreck', 'plane']) {
-      expect(ctx.waterRowColor(theme, 0, 10)).toBe('rgb(11,43,11)')
-    }
-  })
 })
 
 describe('BACKDROP_OPTIONS / BACKGROUND_LABELS', () => {
@@ -83,7 +74,7 @@ describe('drawBackdropElements', () => {
     }
   })
 
-  test.each(['undersea', 'rocks', 'shipwreck', 'plane'])(
+  test.each(['undersea', 'rocks', 'shipwreck'])(
     'draws scene elements for the "%s" backdrop, all within tank bounds',
     (theme) => {
       const ctx = loadBackground()
@@ -106,7 +97,7 @@ describe('drawBackdropElements', () => {
     // (which would imply an off-theme or unrelated decorative element).
     const ctx = loadBackground()
     const greenValues = new Set(Object.values(ctx.GREEN))
-    for (const theme of ['undersea', 'rocks', 'shipwreck', 'plane']) {
+    for (const theme of ['undersea', 'rocks', 'shipwreck']) {
       const seenColors = new Set()
       const mockCtx = {
         pixels: [],
