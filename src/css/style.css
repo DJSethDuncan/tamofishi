@@ -24,6 +24,8 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 #logo-mini { margin: 6px 0; font-size: 16px; letter-spacing: 3px; }
 #logo-mini.hidden { display: none; }
 
+#load-tank-input.hidden { display: none; }
+
 #tank-wrap { position: relative; flex: 1; min-height: 0; }
 
 .btn-settings {
