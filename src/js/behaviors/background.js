@@ -37,22 +37,33 @@ const drawRockMound = (ctx, cx, baseY, width, height, color) => {
   }
 };
 
-// Muted, pixel-style scene elements layered over the water fill (after
-// waterRowColor, before entities) for the themed backdrops. 'gradient' and
-// 'black' draw nothing extra here -- they're the plain water-only options
-// that already existed before this task. Colors stay close to the existing
-// green wall/sand palette (see COLORS in game.js) so nothing competes with
-// the actual plants/animals, per the "keep it slightly muted" requirement.
+// Scene elements layered over the water fill (after waterRowColor, before
+// entities) for the themed backdrops. 'gradient' and 'black' draw nothing
+// extra here -- they're the plain water-only options that already existed
+// before this task.
+//
+// REGRESSION-SHAPED: the first version of this function used colors nearly
+// identical to the water gradient itself (e.g. rock 'rgb(19,44,19)' vs. a
+// gradient top of 'rgb(11,43,11)' -- an 8-unit difference on the two
+// channels that matter most for perceived brightness). Verified against
+// the actual rendered pixels (via node-canvas) that this made every themed
+// backdrop essentially invisible against the water -- "muted" per the task
+// description means restrained relative to the vivid fish/plant colors
+// (e.g. '#33ff33'), not literally the same color as the background it's
+// supposed to sit on top of. These use distinct, muted-but-visible hues
+// (grey-brown stone/wood/metal tones, and a richer olive kelp green) that
+// read clearly as shapes while still staying well below the fish palette's
+// saturation and brightness.
 const drawBackdropElements = (ctx, background, tank) => {
   const { x1, y1, x2, y2 } = tank;
   const w = x2 - x1 + 1;
 
   if (background === 'rocks') {
-    drawRockMound(ctx, x1 + Math.round(w * 0.18), y2, 7, 5, 'rgb(19,44,19)');
-    drawRockMound(ctx, x1 + Math.round(w * 0.52), y2, 11, 9, 'rgb(15,36,15)');
-    drawRockMound(ctx, x1 + Math.round(w * 0.82), y2, 6, 4, 'rgb(21,47,21)');
+    drawRockMound(ctx, x1 + Math.round(w * 0.18), y2, 7, 5, 'rgb(64,80,58)');
+    drawRockMound(ctx, x1 + Math.round(w * 0.52), y2, 11, 9, 'rgb(50,64,46)');
+    drawRockMound(ctx, x1 + Math.round(w * 0.82), y2, 6, 4, 'rgb(70,88,64)');
   } else if (background === 'undersea') {
-    ctx.fillStyle = 'rgb(13,40,19)';
+    ctx.fillStyle = 'rgb(38,110,58)';
     for (let i = 0; i < 6; i++) {
       const bx = x1 + Math.round(w * (0.08 + i * 0.17));
       const kelpH = 7 + (i % 3) * 3;
@@ -64,7 +75,7 @@ const drawBackdropElements = (ctx, background, tank) => {
   } else if (background === 'shipwreck') {
     // Hull + mast only, per the task's explicit "not the fish" constraint --
     // no decorative fish shapes here, just the wreck structure and grass.
-    ctx.fillStyle = 'rgb(28,32,28)';
+    ctx.fillStyle = 'rgb(80,62,44)';
     const hullW = Math.max(6, Math.round(w * 0.5));
     const hullX = x1 + Math.round(w * 0.25);
     const hullY = y2 - 4;
@@ -75,12 +86,12 @@ const drawBackdropElements = (ctx, background, tank) => {
     const mastX = hullX + Math.round(hullW * 0.6);
     for (let j = 0; j < 8; j++) ctx.fillRect(mastX, hullY - j, 1, 1);
 
-    ctx.fillStyle = 'rgb(17,49,17)';
+    ctx.fillStyle = 'rgb(44,120,44)';
     for (let i = -3; i < hullW + 3; i++) {
       if (((i + hullX) % 3) === 0) ctx.fillRect(hullX + i, y2, 1, 2);
     }
   } else if (background === 'plane') {
-    ctx.fillStyle = 'rgb(27,37,31)';
+    ctx.fillStyle = 'rgb(76,86,92)';
     const bodyLen = Math.max(8, Math.round(w * 0.35));
     const bodyX = x1 + Math.round(w * 0.3);
     const bodyY = y2 - 6;
