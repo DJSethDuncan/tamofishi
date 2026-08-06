@@ -91,6 +91,49 @@ describe('crab — tank wall boundary handling', () => {
     expect(c.idle).toBe(0.5)
   })
 
+  test('climbing down the left wall and landing on the floor does not re-trigger climbing', () => {
+    // REGRESSION: the wall-boundary check used to gate the climb-start on the
+    // live c.climbing flag. A crab climbing down reaches the floor and the
+    // "stop climbing" logic sets c.climbing = false earlier in this same
+    // update() call -- so by the time the wall-boundary check ran, it looked
+    // identical to a crab freshly walking into the wall, and immediately
+    // restarted climbing. That trapped crabs in an infinite climb/land loop
+    // right at the corner, never actually walking on the floor.
+    const ctx = loadCrabCtx(0.5)
+    const tank = makeTank()
+    const c = ctx.createCrab(tank, tank.x1, tank.y2 - 0.03)
+    c.climbing = true
+    c.idle = 10
+    c.vx = 0
+    c.vy = 0.04
+    const entities = [c]
+
+    c.update(0.1, entities)
+
+    expect(c.x).toBe(tank.x1)
+    expect(c.y).toBe(tank.y2)
+    expect(c.climbing).toBe(false)
+    expect(c.vy).toBe(0)
+  })
+
+  test('climbing down the right wall and landing on the floor does not re-trigger climbing', () => {
+    const ctx = loadCrabCtx(0.5)
+    const tank = makeTank()
+    const c = ctx.createCrab(tank, tank.x2, tank.y2 - 0.03)
+    c.climbing = true
+    c.idle = 10
+    c.vx = 0
+    c.vy = 0.04
+    const entities = [c]
+
+    c.update(0.1, entities)
+
+    expect(c.x).toBe(tank.x2)
+    expect(c.y).toBe(tank.y2)
+    expect(c.climbing).toBe(false)
+    expect(c.vy).toBe(0)
+  })
+
   test('reaching the left wall while airborne bounces away instead of climbing', () => {
     // Only a crab standing on the floor should start a wall climb — one still
     // falling/jumping through the air should just bounce off the wall.
