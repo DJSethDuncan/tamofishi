@@ -39,4 +39,78 @@ describe('waterRowColor', () => {
   test('falls back to the gradient for an unset/legacy background value', () => {
     expect(loadBackground().waterRowColor(undefined, 0, 10)).toBe('rgb(11,43,11)')
   })
+
+  test('themed backdrops (undersea/rocks/shipwreck/plane) still use the gradient water tint, not a flat fill', () => {
+    // REGRESSION-SHAPED: only 'black' should ever bypass the gradient -- a
+    // themed backdrop that accidentally matched the 'black' branch would
+    // lose its water coloring entirely.
+    const ctx = loadBackground()
+    for (const theme of ['undersea', 'rocks', 'shipwreck', 'plane']) {
+      expect(ctx.waterRowColor(theme, 0, 10)).toBe('rgb(11,43,11)')
+    }
+  })
+})
+
+describe('BACKDROP_OPTIONS / BACKGROUND_LABELS', () => {
+  test('every option has a label and every label maps back to a valid option', () => {
+    const ctx = loadBackground()
+    expect(ctx.BACKDROP_OPTIONS.length).toBeGreaterThanOrEqual(6)
+    for (const opt of ctx.BACKDROP_OPTIONS) {
+      expect(ctx.BACKGROUND_LABELS[opt]).toBeTruthy()
+    }
+    expect(Object.keys(ctx.BACKGROUND_LABELS).sort()).toEqual([...ctx.BACKDROP_OPTIONS].sort())
+  })
+})
+
+describe('drawBackdropElements', () => {
+  const tank = { x1: 2, y1: 2, x2: 177, y2: 55 }
+
+  function makeMockCtx() {
+    const pixels = []
+    return {
+      fillStyle: '',
+      fillRect(x, y, w, h) { pixels.push({ x, y, w, h }) },
+      pixels,
+    }
+  }
+
+  test('draws nothing extra for gradient or black -- those are water-only options', () => {
+    const ctx = loadBackground()
+    for (const plain of ['gradient', 'black']) {
+      const mockCtx = makeMockCtx()
+      ctx.drawBackdropElements(mockCtx, plain, tank)
+      expect(mockCtx.pixels.length).toBe(0)
+    }
+  })
+
+  test.each(['undersea', 'rocks', 'shipwreck', 'plane'])(
+    'draws scene elements for the "%s" backdrop, all within tank bounds',
+    (theme) => {
+      const ctx = loadBackground()
+      const mockCtx = makeMockCtx()
+      ctx.drawBackdropElements(mockCtx, theme, tank)
+      expect(mockCtx.pixels.length).toBeGreaterThan(0)
+      for (const px of mockCtx.pixels) {
+        expect(px.x).toBeGreaterThanOrEqual(tank.x1 - 5) // small silhouette overhang is fine
+        expect(px.x).toBeLessThanOrEqual(tank.x2 + 5)
+      }
+    }
+  )
+
+  test('shipwreck draws no fish-shaped decoration -- only the hull/mast/grass elements', () => {
+    // The task explicitly said "only use the ship and grass, not the fish"
+    // -- this asserts the function only ever sets one of the three known
+    // wreck-scene colors, never introduces an unrelated fourth color that
+    // would imply a separate decorative creature shape.
+    const ctx = loadBackground()
+    const seenColors = new Set()
+    const mockCtx = {
+      pixels: [],
+      set fillStyle(c) { this._c = c; seenColors.add(c) },
+      get fillStyle() { return this._c },
+      fillRect(x, y, w, h) { this.pixels.push({ x, y, w, h, color: this._c }) },
+    }
+    ctx.drawBackdropElements(mockCtx, 'shipwreck', tank)
+    expect(seenColors.size).toBe(2) // hull+mast share one color, grass is the other
+  })
 })
