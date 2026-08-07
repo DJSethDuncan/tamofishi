@@ -134,6 +134,30 @@ describe('crab — tank wall boundary handling', () => {
     expect(c.vy).toBe(0)
   })
 
+  test('a crab that landed at the corner stays on the floor across multiple frames, not just the landing one', () => {
+    // REGRESSION: wasClimbing alone only blocks a climb restart on the exact
+    // frame a climb-down lands. A landed crab has vx === 0 and stays parked
+    // exactly at x1 -- on the *next* frame wasClimbing is false too (it was
+    // already cleared on the landing frame), so the old check would fire
+    // again and restart the climb, producing a rapid climb/land flicker
+    // right at the corner instead of the crab ever actually walking away.
+    const ctx = loadCrabCtx(0.5)
+    const tank = makeTank()
+    const c = ctx.createCrab(tank, tank.x1, tank.y2 - 0.03)
+    c.climbing = true
+    c.idle = 10
+    c.vx = 0
+    c.vy = 0.04
+    const entities = [c]
+
+    c.update(0.1, entities) // lands this frame
+    expect(c.climbing).toBe(false)
+
+    c.update(0.1, entities) // must NOT restart climbing on the very next frame
+    expect(c.climbing).toBe(false)
+    expect(c.x).toBe(tank.x1)
+  })
+
   test('reaching the left wall while airborne bounces away instead of climbing', () => {
     // Only a crab standing on the floor should start a wall climb — one still
     // falling/jumping through the air should just bounce off the wall.
