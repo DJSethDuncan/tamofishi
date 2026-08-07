@@ -174,15 +174,19 @@ intensityRange.addEventListener('input', () => {
 // this is just the settings-modal button wiring on top of it.
 document.getElementById('zindex-front-btn').addEventListener('click', () => {
   if (decorTarget) bringDecorToFront(entities, decorTarget);
+  hideDecorPopup();
 });
 document.getElementById('zindex-back-btn').addEventListener('click', () => {
   if (decorTarget) sendDecorToBack(entities, decorTarget);
+  hideDecorPopup();
 });
 document.getElementById('zindex-forward-btn').addEventListener('click', () => {
   if (decorTarget) swapDecorWithNeighbor(entities, decorTarget, 1, DECOR_TYPES);
+  hideDecorPopup();
 });
 document.getElementById('zindex-backward-btn').addEventListener('click', () => {
   if (decorTarget) swapDecorWithNeighbor(entities, decorTarget, -1, DECOR_TYPES);
+  hideDecorPopup();
 });
 
 document.addEventListener('pointerdown', (e) => {
@@ -433,9 +437,7 @@ const setMurderMode = (on) => {
   }
   canvas.style.cursor = on ? knifeCursor : arrowCursor;
   document.getElementById('murder-btn').textContent = on ? 'STOP MURDER' : 'MURDER';
-  // Recolors the whole UI + canvas red via a single hue-rotate rather than
-  // touching every hardcoded green in style.css/entity draw code.
-  document.getElementById('app-wrap').classList.toggle('murder-mode', on);
+  updateColorFilter();
 };
 
 document.addEventListener('keydown', (e) => {
@@ -486,6 +488,36 @@ backgroundBtn.addEventListener('click', () => {
   updateBackgroundBtnLabel();
   saveState();
 });
+// A display preference, not tank state -- persisted directly in
+// localStorage (like storage.js's own tank save channel) rather than
+// riding buildStateObject/applyState, so it isn't tied to a particular
+// tank save and survives CLEAR TANK.
+const SCREEN_SCHEME_KEY = 'tamofishi-screen-scheme';
+const screenSchemeBtn = document.getElementById('screen-scheme-btn');
+let screenScheme = (() => {
+  try { return localStorage.getItem(SCREEN_SCHEME_KEY) === 'amber' ? 'amber' : 'green'; }
+  catch { return 'green'; }
+})();
+// Sums whichever of the two hue-rotate shifts are currently active (amber
+// screen scheme, murder mode) into the single --hue-shift CSS variable
+// #app-wrap's filter reads (see style.css) -- referenced by setMurderMode
+// above too, so either one changing keeps the combined rotation correct
+// regardless of which toggled.
+const updateColorFilter = () => {
+  const amberDeg = screenScheme === 'amber' ? -80 : 0;
+  const murderDeg = murderMode ? -120 : 0;
+  document.getElementById('app-wrap').style.setProperty('--hue-shift', `${amberDeg + murderDeg}deg`);
+};
+const applyScreenScheme = () => {
+  updateColorFilter();
+  screenSchemeBtn.textContent = `SCREEN: ${screenScheme.toUpperCase()}`;
+};
+screenSchemeBtn.addEventListener('click', () => {
+  screenScheme = screenScheme === 'green' ? 'amber' : 'green';
+  applyScreenScheme();
+  try { localStorage.setItem(SCREEN_SCHEME_KEY, screenScheme); } catch {}
+});
+applyScreenScheme();
 document.getElementById('prune-btn').addEventListener('click', () => {
   setPruneMode(!pruneMode);
 });

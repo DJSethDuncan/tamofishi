@@ -4,10 +4,17 @@
 }
 
 html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100dvh; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
-#app-wrap { width: 100%; display: flex; flex-direction: column; height: 100dvh; margin: 0 auto; }
-/* Green (#33ff33, hue 120) -> red (hue 0) via a single hue-rotate, so the
-   entire UI + canvas shifts together without re-theming every element. */
-#app-wrap.murder-mode { filter: hue-rotate(240deg); }
+/* Murder mode (green -> red, hue 120 -> 0) and the amber screen scheme
+   (green -> amber, hue 120 -> 40) both recolor the whole app via
+   hue-rotate. Combined into one CSS variable, set by updateColorFilter()
+   in game.js as the sum of whichever shift(s) are active, rather than two
+   separate classes each independently setting `filter` on #app-wrap --
+   only one of two competing `filter` declarations can ever actually apply
+   at once, so without this they wouldn't have composed with both active. */
+#app-wrap {
+  width: 100%; display: flex; flex-direction: column; height: 100dvh; margin: 0 auto;
+  filter: hue-rotate(var(--hue-shift, 0deg));
+}
 canvas#c { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
 canvas.icon { display: inline-block; image-rendering: pixelated; }
 
@@ -112,7 +119,14 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 #achievements-modal, #achievement-unlock-modal {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30;
   background: #0a1a0a; border: 2px solid #1a5a1a;
-  padding: 10px; min-width: 220px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+  padding: 10px; min-width: 220px; max-width: 90vw; overflow-y: auto;
+  /* #tank-wrap (the positioning ancestor, position:relative) is sized to the
+     actual tank area, not the viewport -- percentage height is relative to
+     it, so this can never exceed the tank's own height even when tank-wrap
+     is smaller than the viewport (e.g. the add-panel/header taking space).
+     -8px top + -8px bottom via the surrounding calc gives a symmetric
+     buffer above/below once centered by the transform above. */
+  max-height: calc(100% - 16px);
   display: flex; flex-direction: column; gap: 6px; align-items: stretch;
 }
 #achievements-modal.hidden, #achievement-unlock-modal.hidden { display: none; }
@@ -127,9 +141,24 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 .achievement-row.locked { opacity: 0.5; }
 .achievement-name { color: #33ff33; font-size: 12px; letter-spacing: 1px; }
 .achievement-description { color: #33ff33; font-size: 10px; opacity: 0.8; }
-#achievement-unlock-modal { text-align: center; align-items: center; }
+#achievement-unlock-modal { text-align: center; align-items: center; overflow: visible; }
 #achievement-unlock-name { color: #33ff33; font-size: 13px; letter-spacing: 1px; }
 #achievement-unlock-description { color: #33ff33; font-size: 10px; opacity: 0.8; }
+
+/* 1px bubbles that pop out of the unlock modal when it appears -- spawned
+   and removed by achievements.js's spawnUnlockBubbles, one .unlock-bubble
+   element per bubble, each with its own randomized rise/drift via inline
+   custom properties (see spawnUnlockBubbles) so no two look identical. */
+.unlock-bubble {
+  position: absolute; width: 1px; height: 1px; background: #99eebb;
+  left: var(--bx, 50%); top: var(--by, 50%);
+  animation: unlock-bubble-rise 0.9s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes unlock-bubble-rise {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(var(--bdx, 0), var(--bdy, -30px)); opacity: 0; }
+}
 
 @media (max-width: 600px) {
   .btn { font-size: 10px; padding: 4px 0; letter-spacing: 0; }
