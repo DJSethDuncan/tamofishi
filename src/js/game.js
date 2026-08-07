@@ -257,8 +257,22 @@ const handleTap = (tx, ty, e) => {
     }
     return;
   }
+  const chestHit = findDraggable(tx, ty);
+  if (chestHit && chestHit.type === 'treasure-chest') {
+    chestHit.triggerBurst(entities);
+    // Stop this same click from immediately bubbling into the document-level
+    // "click outside the panel closes it" listener below, which would
+    // otherwise close the panel the instant it opens. Also the only way out
+    // of murder mode short of the STOP MURDER button, so it must stay
+    // clickable while murderMode is active.
+    if (e) e.stopPropagation();
+    addPanel.classList.remove('hidden');
+    return;
+  }
   if (murderMode) {
-    // Treasure chests can't be removed, murder mode included.
+    // Treasure chests can't be removed, murder mode included -- already
+    // handled (and returned) above, this exclusion just guards against the
+    // hit-test radii of the two checks disagreeing.
     const hit = entities.find(ent => ent.type !== 'flake' && ent.type !== 'treasure-chest' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
     if (hit) {
       if (hit.type === 'fish') TANK.stats.fishMurdered++;
@@ -289,16 +303,6 @@ const handleTap = (tx, ty, e) => {
         c.globalAlpha = 1;
       };
     }
-    return;
-  }
-  const chestHit = findDraggable(tx, ty);
-  if (chestHit && chestHit.type === 'treasure-chest') {
-    chestHit.triggerBurst(entities);
-    // Stop this same click from immediately bubbling into the document-level
-    // "click outside the panel closes it" listener below, which would
-    // otherwise close the panel the instant it opens.
-    if (e) e.stopPropagation();
-    addPanel.classList.remove('hidden');
     return;
   }
   if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
@@ -429,7 +433,14 @@ const setMurderMode = (on) => {
   }
   canvas.style.cursor = on ? knifeCursor : arrowCursor;
   document.getElementById('murder-btn').textContent = on ? 'STOP MURDER' : 'MURDER';
+  // Recolors the whole UI + canvas red via a single hue-rotate rather than
+  // touching every hardcoded green in style.css/entity draw code.
+  document.getElementById('app-wrap').classList.toggle('murder-mode', on);
 };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && murderMode) setMurderMode(false);
+});
 
 const setPruneMode = (on) => {
   pruneMode = on;

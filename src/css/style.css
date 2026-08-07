@@ -5,6 +5,9 @@
 
 html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100dvh; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
 #app-wrap { width: 100%; display: flex; flex-direction: column; height: 100dvh; margin: 0 auto; }
+/* Green (#33ff33, hue 120) -> red (hue 0) via a single hue-rotate, so the
+   entire UI + canvas shifts together without re-theming every element. */
+#app-wrap.murder-mode { filter: hue-rotate(240deg); }
 canvas#c { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
 canvas.icon { display: inline-block; image-rendering: pixelated; }
 
