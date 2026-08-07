@@ -8,7 +8,6 @@ const BACKGROUND_LABELS = {
   undersea: 'UNDERSEA',
   rocks: 'ROCKS',
   shipwreck: 'SHIPWRECK',
-  plane: 'PLANE',
 };
 
 // Extracted so the fill color is testable without a canvas. 'black' is a
@@ -31,13 +30,17 @@ const waterRowColor = (background, row, tankH) => {
 // by convention. Also gives each theme real shading depth (a rock face vs.
 // its shadow, a hull plank vs. its seam) using only lightness, never a hue
 // shift.
+// Same hues as before, saturation halved (HSL S *0.5, computed offline) --
+// Seth asked for roughly half the saturation across every backdrop so the
+// scenery reads more clearly as background rather than competing with the
+// foreground plants/animals.
 const GREEN = {
-  darkest: 'rgb(9,36,12)',
-  dark:    'rgb(17,58,20)',
-  mid:     'rgb(28,86,31)',
-  light:   'rgb(46,122,49)',
-  bright:  'rgb(68,160,71)',
-  brightest: 'rgb(96,200,98)',
+  darkest: 'rgb(16,29,17)',
+  dark:    'rgb(27,48,29)',
+  mid:     'rgb(42,72,44)',
+  light:   'rgb(65,103,67)',
+  bright:  'rgb(91,137,93)',
+  brightest: 'rgb(122,174,123)',
 };
 
 // Draws a single blocky, faceted "boulder" -- an irregular hexagon-ish
@@ -114,18 +117,19 @@ const drawBackdropElements = (ctx, background, tank) => {
     }
   } else if (background === 'rocks') {
     // A dense wall of stacked, faceted boulders (per the reference photo's
-    // rock-wall texture) covering most of the tank width and a third of
-    // its height, with small bright fern tufts sprouting from the cracks.
-    const rows = 3;
+    // rock-wall texture), repeating in bands all the way up the tank (not
+    // just the bottom third) -- the shade cycle (3 tones) repeats with the
+    // rows, so it reads as a continuing rock face rather than stopping
+    // partway up.
     const rowH = Math.max(5, Math.round(h * 0.11));
-    for (let row = 0; row < rows; row++) {
+    const shades = [
+      [GREEN.darkest, GREEN.dark],
+      [GREEN.dark, GREEN.mid],
+      [GREEN.mid, GREEN.light],
+    ];
+    for (let row = 0; (y2 - Math.round(rowH * 0.5) - row * (rowH - 1)) + rowH >= y1; row++) {
       const rowY = y2 - Math.round(rowH * 0.5) - row * (rowH - 1);
-      const boulderCount = 6 + row;
-      const shades = [
-        [GREEN.darkest, GREEN.dark],
-        [GREEN.dark, GREEN.mid],
-        [GREEN.mid, GREEN.light],
-      ];
+      const boulderCount = 6 + (row % 3);
       const [fill, edge] = shades[row % shades.length];
       for (let i = 0; i < boulderCount; i++) {
         const bw = 8 + ((i * 7 + row * 3) % 6);
@@ -147,7 +151,7 @@ const drawBackdropElements = (ctx, background, tank) => {
     // by dense grass/coral silhouettes along the bottom -- ship + grass
     // only, per the task's explicit "not the fish" note on this image.
     const hullW = Math.max(26, Math.round(w * 0.42));
-    const hullH = Math.max(7, Math.round(h * 0.16));
+    const hullH = Math.max(14, Math.round(h * 0.32)); // 2x the original height, per feedback
     const hullX = x1 + Math.round(w * 0.12);
     const tilt = Math.round(hullH * 0.35); // listing to one side
     const hullY = y2 - hullH + 1;

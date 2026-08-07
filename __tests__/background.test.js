@@ -45,7 +45,7 @@ describe('waterRowColor', () => {
 describe('BACKDROP_OPTIONS / BACKGROUND_LABELS', () => {
   test('every option has a label and every label maps back to a valid option', () => {
     const ctx = loadBackground()
-    expect(ctx.BACKDROP_OPTIONS.length).toBeGreaterThanOrEqual(6)
+    expect(ctx.BACKDROP_OPTIONS.length).toBeGreaterThanOrEqual(5)
     for (const opt of ctx.BACKDROP_OPTIONS) {
       expect(ctx.BACKGROUND_LABELS[opt]).toBeTruthy()
     }
