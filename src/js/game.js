@@ -242,6 +242,21 @@ canvas.addEventListener('mouseup', () => {
 });
 
 const handleTap = (tx, ty, e) => {
+  // The chest is the sole entry point back to the menu, so it must stay
+  // clickable in every mode -- including murder/prune mode, where it was
+  // previously unreachable because those modes' own hit-tests returned
+  // early before this check ever ran. That specifically blocked turning
+  // murder mode back off via the menu once it was on.
+  const chestHit = findDraggable(tx, ty);
+  if (chestHit && chestHit.type === 'treasure-chest') {
+    chestHit.triggerBurst(entities);
+    // Stop this same click from immediately bubbling into the document-level
+    // "click outside the panel closes it" listener below, which would
+    // otherwise close the panel the instant it opens.
+    if (e) e.stopPropagation();
+    addPanel.classList.remove('hidden');
+    return;
+  }
   if (pruneMode) {
     const hit = entities.find(ent => (ent.type === 'plant' || ent.type === 'duckweed') && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 4);
     if (hit) {
@@ -289,16 +304,6 @@ const handleTap = (tx, ty, e) => {
         c.globalAlpha = 1;
       };
     }
-    return;
-  }
-  const chestHit = findDraggable(tx, ty);
-  if (chestHit && chestHit.type === 'treasure-chest') {
-    chestHit.triggerBurst(entities);
-    // Stop this same click from immediately bubbling into the document-level
-    // "click outside the panel closes it" listener below, which would
-    // otherwise close the panel the instant it opens.
-    if (e) e.stopPropagation();
-    addPanel.classList.remove('hidden');
     return;
   }
   if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
@@ -429,7 +434,16 @@ const setMurderMode = (on) => {
   }
   canvas.style.cursor = on ? knifeCursor : arrowCursor;
   document.getElementById('murder-btn').textContent = on ? 'STOP MURDER' : 'MURDER';
+  // Shifts the whole app (canvas + UI) from green to red via a single CSS
+  // filter on the shared #app-wrap ancestor, rather than swapping every
+  // individual color definition across the canvas palette and every CSS
+  // rule -- one toggle covers both surfaces uniformly.
+  document.getElementById('app-wrap').classList.toggle('murder-mode', on);
 };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && murderMode) setMurderMode(false);
+});
 
 const setPruneMode = (on) => {
   pruneMode = on;
