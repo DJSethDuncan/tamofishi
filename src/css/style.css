@@ -114,7 +114,14 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 #achievements-modal, #achievement-unlock-modal {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30;
   background: #0a1a0a; border: 2px solid #1a5a1a;
-  padding: 10px; min-width: 220px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+  padding: 10px; min-width: 220px; max-width: 90vw; overflow-y: auto;
+  /* #tank-wrap (the positioning ancestor, position:relative) is sized to the
+     actual tank area, not the viewport -- percentage height is relative to
+     it, so this can never exceed the tank's own height even when tank-wrap
+     is smaller than the viewport (e.g. the add-panel/header taking space).
+     -8px top + -8px bottom via the surrounding calc gives a symmetric
+     buffer above/below once centered by the transform above. */
+  max-height: calc(100% - 16px);
   display: flex; flex-direction: column; gap: 6px; align-items: stretch;
 }
 #achievements-modal.hidden, #achievement-unlock-modal.hidden { display: none; }
@@ -129,9 +136,24 @@ canvas.icon { display: inline-block; image-rendering: pixelated; }
 .achievement-row.locked { opacity: 0.5; }
 .achievement-name { color: #33ff33; font-size: 12px; letter-spacing: 1px; }
 .achievement-description { color: #33ff33; font-size: 10px; opacity: 0.8; }
-#achievement-unlock-modal { text-align: center; align-items: center; }
+#achievement-unlock-modal { text-align: center; align-items: center; overflow: visible; }
 #achievement-unlock-name { color: #33ff33; font-size: 13px; letter-spacing: 1px; }
 #achievement-unlock-description { color: #33ff33; font-size: 10px; opacity: 0.8; }
+
+/* 1px bubbles that pop out of the unlock modal when it appears -- spawned
+   and removed by achievements.js's spawnUnlockBubbles, one .unlock-bubble
+   element per bubble, each with its own randomized rise/drift via inline
+   custom properties (see spawnUnlockBubbles) so no two look identical. */
+.unlock-bubble {
+  position: absolute; width: 1px; height: 1px; background: #99eebb;
+  left: var(--bx, 50%); top: var(--by, 50%);
+  animation: unlock-bubble-rise 0.9s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes unlock-bubble-rise {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(var(--bdx, 0), var(--bdy, -30px)); opacity: 0; }
+}
 
 @media (max-width: 600px) {
   .btn { font-size: 10px; padding: 4px 0; letter-spacing: 0; }
