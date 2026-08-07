@@ -4,12 +4,17 @@
 }
 
 html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100dvh; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
-#app-wrap { width: 100%; display: flex; flex-direction: column; height: 100dvh; margin: 0 auto; }
-/* Amber-phosphor CRT display mode -- the game's whole palette (canvas fills,
-   entity colors, every #33ff33 UI accent) is a single green hue (120deg), so
-   one hue-rotate shifts canvas + UI together to amber (#ffaa00, hue 40deg)
-   instead of swapping every individual color definition. */
-#app-wrap.amber-scheme { filter: hue-rotate(-80deg); }
+/* Murder mode (green -> red, hue 120 -> 0) and the amber screen scheme
+   (green -> amber, hue 120 -> 40) both recolor the whole app via
+   hue-rotate. Combined into one CSS variable, set by updateColorFilter()
+   in game.js as the sum of whichever shift(s) are active, rather than two
+   separate classes each independently setting `filter` on #app-wrap --
+   only one of two competing `filter` declarations can ever actually apply
+   at once, so without this they wouldn't have composed with both active. */
+#app-wrap {
+  width: 100%; display: flex; flex-direction: column; height: 100dvh; margin: 0 auto;
+  filter: hue-rotate(var(--hue-shift, 0deg));
+}
 canvas#c { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
 canvas.icon { display: inline-block; image-rendering: pixelated; }
 
