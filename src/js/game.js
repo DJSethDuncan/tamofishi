@@ -475,6 +475,26 @@ backgroundBtn.addEventListener('click', () => {
   updateBackgroundBtnLabel();
   saveState();
 });
+// A display preference, not tank state -- persisted directly in
+// localStorage (like storage.js's own tank save channel) rather than
+// riding buildStateObject/applyState, so it isn't tied to a particular
+// tank save and survives CLEAR TANK.
+const SCREEN_SCHEME_KEY = 'tamofishi-screen-scheme';
+const screenSchemeBtn = document.getElementById('screen-scheme-btn');
+let screenScheme = (() => {
+  try { return localStorage.getItem(SCREEN_SCHEME_KEY) === 'amber' ? 'amber' : 'green'; }
+  catch { return 'green'; }
+})();
+const applyScreenScheme = () => {
+  document.getElementById('app-wrap').classList.toggle('amber-scheme', screenScheme === 'amber');
+  screenSchemeBtn.textContent = `SCREEN: ${screenScheme.toUpperCase()}`;
+};
+screenSchemeBtn.addEventListener('click', () => {
+  screenScheme = screenScheme === 'green' ? 'amber' : 'green';
+  applyScreenScheme();
+  try { localStorage.setItem(SCREEN_SCHEME_KEY, screenScheme); } catch {}
+});
+applyScreenScheme();
 document.getElementById('prune-btn').addEventListener('click', () => {
   setPruneMode(!pruneMode);
 });

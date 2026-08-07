@@ -5,6 +5,11 @@
 
 html, body { margin: 0; background: #0a0a0a; overflow: hidden; display: flex; flex-direction: column; height: 100dvh; font-family: 'Courier New', Courier, monospace; touch-action: manipulation; }
 #app-wrap { width: 100%; display: flex; flex-direction: column; height: 100dvh; margin: 0 auto; }
+/* Amber-phosphor CRT display mode -- the game's whole palette (canvas fills,
+   entity colors, every #33ff33 UI accent) is a single green hue (120deg), so
+   one hue-rotate shifts canvas + UI together to amber (#ffaa00, hue 40deg)
+   instead of swapping every individual color definition. */
+#app-wrap.amber-scheme { filter: hue-rotate(-80deg); }
 canvas#c { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
 canvas.icon { display: inline-block; image-rendering: pixelated; }
 
