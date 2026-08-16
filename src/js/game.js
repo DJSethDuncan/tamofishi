@@ -261,8 +261,22 @@ const handleTap = (tx, ty, e) => {
     }
     return;
   }
+  const chestHit = findDraggable(tx, ty);
+  if (chestHit && chestHit.type === 'treasure-chest') {
+    chestHit.triggerBurst(entities);
+    // Stop this same click from immediately bubbling into the document-level
+    // "click outside the panel closes it" listener below, which would
+    // otherwise close the panel the instant it opens. Also the only way out
+    // of murder mode short of the STOP MURDER button, so it must stay
+    // clickable while murderMode is active.
+    if (e) e.stopPropagation();
+    addPanel.classList.remove('hidden');
+    return;
+  }
   if (murderMode) {
-    // Treasure chests can't be removed, murder mode included.
+    // Treasure chests can't be removed, murder mode included -- already
+    // handled (and returned) above, this exclusion just guards against the
+    // hit-test radii of the two checks disagreeing.
     const hit = entities.find(ent => ent.type !== 'flake' && ent.type !== 'treasure-chest' && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 3);
     if (hit) {
       if (hit.type === 'fish') TANK.stats.fishMurdered++;
@@ -293,16 +307,6 @@ const handleTap = (tx, ty, e) => {
         c.globalAlpha = 1;
       };
     }
-    return;
-  }
-  const chestHit = findDraggable(tx, ty);
-  if (chestHit && chestHit.type === 'treasure-chest') {
-    chestHit.triggerBurst(entities);
-    // Stop this same click from immediately bubbling into the document-level
-    // "click outside the panel closes it" listener below, which would
-    // otherwise close the panel the instant it opens.
-    if (e) e.stopPropagation();
-    addPanel.classList.remove('hidden');
     return;
   }
   if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
@@ -433,7 +437,12 @@ const setMurderMode = (on) => {
   }
   canvas.style.cursor = on ? knifeCursor : arrowCursor;
   document.getElementById('murder-btn').textContent = on ? 'STOP MURDER' : 'MURDER';
+  updateColorFilter();
 };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && murderMode) setMurderMode(false);
+});
 
 const setPruneMode = (on) => {
   pruneMode = on;
@@ -489,8 +498,18 @@ let screenScheme = (() => {
   try { return localStorage.getItem(SCREEN_SCHEME_KEY) === 'amber' ? 'amber' : 'green'; }
   catch { return 'green'; }
 })();
+// Sums whichever of the two hue-rotate shifts are currently active (amber
+// screen scheme, murder mode) into the single --hue-shift CSS variable
+// #app-wrap's filter reads (see style.css) -- referenced by setMurderMode
+// above too, so either one changing keeps the combined rotation correct
+// regardless of which toggled.
+const updateColorFilter = () => {
+  const amberDeg = screenScheme === 'amber' ? -80 : 0;
+  const murderDeg = murderMode ? -120 : 0;
+  document.getElementById('app-wrap').style.setProperty('--hue-shift', `${amberDeg + murderDeg}deg`);
+};
 const applyScreenScheme = () => {
-  document.getElementById('app-wrap').classList.toggle('amber-scheme', screenScheme === 'amber');
+  updateColorFilter();
   screenSchemeBtn.textContent = `SCREEN: ${screenScheme.toUpperCase()}`;
 };
 screenSchemeBtn.addEventListener('click', () => {
