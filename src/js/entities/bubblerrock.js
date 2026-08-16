@@ -1,9 +1,14 @@
 // Dual-sine drift produces a genuinely meandering path (not just a regular sine sway).
-const createMeanderingBubble = (tank, startX, startY) => {
+// `source` is the bubbler-rock this bubble came from -- game.js's draw loop
+// uses it to draw the bubble at its source's z-position (right after the
+// rock itself) instead of a fixed always-on-top layer, so a bubbler-rock
+// sent behind a plant has its bubbles occluded by that plant too.
+const createMeanderingBubble = (tank, startX, startY, source) => {
   const b = {
     type: 'bubble',
     x: startX,
     y: startY,
+    source,
     eaten: false,
     phase:  Math.random() * Math.PI * 2,
     phase2: Math.random() * Math.PI * 2,
@@ -76,7 +81,7 @@ const createBubblerRock = (tank, x) => {
       br._next = (1 + Math.random() * 1.5) / br.intensity;
       const ventCol = Math.floor(Math.random() * 9) - 4;
       const ventH = BUBBLER_COLS[Math.max(0, Math.min(BUBBLER_COLS.length - 1, ventCol + BUBBLER_HALFBASE))] || 1;
-      entities.push(createMeanderingBubble(tank, br.x + ventCol + (Math.random() - 0.5), FLOOR - ventH - 1));
+      entities.push(createMeanderingBubble(tank, br.x + ventCol + (Math.random() - 0.5), FLOOR - ventH - 1, br));
       tank.stats.bubblesBlown++;
     }
   };

@@ -694,11 +694,25 @@ function loop(now) {
   // bring-to-front/send-to-back buttons manipulate (see zindex-front-btn
   // etc. below), so a rock can end up drawn in front of a plant. hitTest.js
   // relies on this exact same array-order convention for click-testing.
-  entities.filter(e => DECOR_TYPES.includes(e.type)).forEach(e => e.draw(ctx));
+  //
+  // Each decor entity's bubbles (if it's a bubbler-rock) draw immediately
+  // after it, at the same z-slot -- so sending a bubbler-rock behind a
+  // plant also sends its bubbles behind that plant, instead of bubbles
+  // always rendering on top of everything via a fixed final pass.
+  const decorEntities = entities.filter(e => DECOR_TYPES.includes(e.type));
+  const decorSet = new Set(decorEntities);
+  decorEntities.forEach(e => {
+    e.draw(ctx);
+    entities.filter(b => b.type === 'bubble' && b.source === e).forEach(b => b.draw(ctx));
+  });
   entities.filter(e => e.type === 'duckweed').forEach(e => e.draw(ctx));
   entities.filter(e => e.type === 'flake').forEach(e => e.draw(ctx));
   entities.filter(e => e.type !== 'flake' && e.type !== 'duckweed' && e.type !== 'bubble' && !DECOR_TYPES.includes(e.type)).forEach(e => e.draw(ctx));
-  entities.filter(e => e.type === 'bubble').forEach(e => e.draw(ctx));
+  // Orphaned bubbles (their source bubbler-rock was murdered/removed after
+  // they spawned) have no z-slot to draw into anymore -- fall back to the
+  // old always-on-top behavior for just those, rather than letting them
+  // silently stop rendering.
+  entities.filter(e => e.type === 'bubble' && !decorSet.has(e.source)).forEach(e => e.draw(ctx));
   // Shockwaves
   for (let i = shockwaves.length - 1; i >= 0; i--) {
     const sw = shockwaves[i];

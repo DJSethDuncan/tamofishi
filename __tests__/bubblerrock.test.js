@@ -71,6 +71,21 @@ describe('createBubblerRock', () => {
     expect(entities[0].type).toBe('bubble')
   })
 
+  test('an emitted bubble carries a reference to the bubbler-rock that spawned it', () => {
+    // REGRESSION-SHAPED: game.js's draw loop uses bubble.source to draw a
+    // bubble at its source rock's z-slot instead of always on top -- a
+    // bubble spawned without this reference would fall back to the
+    // orphaned-bubble path and always render on top regardless of the
+    // rock's actual z-index.
+    const ctx = loadEntity('bubblerrock.js', 0)
+    const tank = makeTank()
+    const br = ctx.createBubblerRock(tank, 90)
+    br._next = 0.5
+    const entities = []
+    br.update(1, entities)
+    expect(entities[0].source).toBe(br)
+  })
+
   test('timer resets to 0 after emitting', () => {
     const ctx = loadEntity('bubblerrock.js', 0)
     const tank = makeTank()
