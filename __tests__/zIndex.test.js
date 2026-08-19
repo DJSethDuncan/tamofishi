@@ -47,6 +47,20 @@ describe('sendDecorToBack', () => {
 
     expect(entities).toEqual([c, a, b])
   })
+
+  test('no-op when the target is not in the array', () => {
+    // REGRESSION-SHAPED: bringDecorToFront already had this guard covered,
+    // but sendDecorToBack's identical indexOf(-1) guard had no coverage of
+    // its own -- a broken guard here would unshift a stray/stale entity
+    // reference into the array instead of leaving it untouched.
+    const ctx = loadZIndex()
+    const a = { type: 'rock' }, ghost = { type: 'rock' }
+    const entities = [a]
+
+    ctx.sendDecorToBack(entities, ghost)
+
+    expect(entities).toEqual([a])
+  })
 })
 
 describe('swapDecorWithNeighbor', () => {
