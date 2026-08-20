@@ -2,12 +2,25 @@
 // tested in isolation (see __tests__/achievement-conditions.test.js), same
 // pattern as the entity files. The DOM-wiring runtime that consumes this
 // (modal display, unlock persistence) lives in achievements.js instead.
+//
+// Entities being murdered or naturally dying aren't removed from the
+// entities array immediately -- they linger for a fade-out animation (see
+// fish.js's startDying / game.js's handleTap murder branch, both of which
+// set e.dead to a countdown and leave the entity in place until it decays to
+// 0). Every condition below is a live snapshot check ("N of these right
+// now"), so a fading corpse still sitting in the array would otherwise be
+// miscounted as present -- e.g. murdering down to 3 fish would still read as
+// "10 creatures in the tank at once" for as long as the corpses take to fade.
+// Filtering !e.dead first keeps every condition honest about what's actually
+// alive in the tank at check time.
+const aliveEntities = (entities) => entities.filter(e => !e.dead);
+
 const ACHIEVEMENTS = [
   {
     id: 'getting-started',
     name: 'Getting Started',
     description: 'Add your first fish to the tank.',
-    condition: (entities) => entities.some(e => e.type === 'fish'),
+    condition: (entities) => aliveEntities(entities).some(e => e.type === 'fish'),
   },
   {
     id: 'growing-family',
@@ -15,7 +28,7 @@ const ACHIEVEMENTS = [
     description: 'Have 10 or more creatures in the tank at once.',
     condition: (entities) => {
       const liveCreatureTypes = ['fish', 'crab', 'shrimp', 'snail', 'turtle'];
-      return entities.filter(e => liveCreatureTypes.includes(e.type)).length >= 10;
+      return aliveEntities(entities).filter(e => liveCreatureTypes.includes(e.type)).length >= 10;
     },
   },
   {
@@ -24,7 +37,7 @@ const ACHIEVEMENTS = [
     description: 'Have at least one fish, crab, shrimp, snail, and turtle in the tank at the same time.',
     condition: (entities) => {
       const liveCreatureTypes = ['fish', 'crab', 'shrimp', 'snail', 'turtle'];
-      const present = new Set(entities.map(e => e.type));
+      const present = new Set(aliveEntities(entities).map(e => e.type));
       return liveCreatureTypes.every(t => present.has(t));
     },
   },
@@ -32,13 +45,16 @@ const ACHIEVEMENTS = [
     id: 'green-thumb',
     name: 'Green Thumb',
     description: 'Add a plant and a rock to the tank.',
-    condition: (entities) => entities.some(e => e.type === 'plant') && entities.some(e => e.type === 'rock'),
+    condition: (entities) => {
+      const alive = aliveEntities(entities);
+      return alive.some(e => e.type === 'plant') && alive.some(e => e.type === 'rock');
+    },
   },
   {
     id: 'bubbly',
     name: 'Bubbly',
     description: 'Add a bubbler rock to the tank.',
-    condition: (entities) => entities.some(e => e.type === 'bubbler-rock'),
+    condition: (entities) => aliveEntities(entities).some(e => e.type === 'bubbler-rock'),
   },
 ];
 
@@ -51,7 +67,7 @@ ACHIEVEMENTS.push({ id: 'well-fed', name: 'Well Fed', description: 'Feed the fis
 // each time Achievements.check() runs (every 3s) -- once true at any check
 // tick, unlock() locks it in permanently, so this correctly captures "N at
 // once", not a running historical max that would need separate tracking.
-const countOf = (entities, type) => entities.filter(e => e.type === type).length;
+const countOf = (entities, type) => aliveEntities(entities).filter(e => e.type === type).length;
 
 [
   { id: 'escargogogo',     name: 'Escargogogo',        type: 'snail',        n: 25 },
