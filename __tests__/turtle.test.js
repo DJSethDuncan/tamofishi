@@ -154,3 +154,28 @@ describe('turtle balance — crab gang-up', () => {
     expect(t.panic).toBeLessThan(panicBefore)
   })
 })
+
+describe('turtle — tank wall boundary handling', () => {
+  test('a turtle that landed at the corner stays on the floor across multiple frames, not just the landing one', () => {
+    // REGRESSION: same corner climb/land flicker bug fixed for crab in #63
+    // (wasClimbing alone only blocks a climb restart on the exact frame a
+    // climb-down lands -- a landed turtle has vx === 0 and stays parked
+    // exactly at x1, so on the *next* frame wasClimbing is false too and the
+    // old check would fire again, restarting the climb it just finished).
+    const ctx = loadTurtleCtx(0.5)
+    const tank = makeTank()
+    const t = ctx.createTurtle(tank, tank.x1, tank.y2 - 0.03)
+    t.climbing = true
+    t.idle = 10
+    t.vx = 0
+    t.vy = 0.04
+    const entities = [t]
+
+    t.update(0.1, entities) // lands this frame
+    expect(t.climbing).toBe(false)
+
+    t.update(0.1, entities) // must NOT restart climbing on the very next frame
+    expect(t.climbing).toBe(false)
+    expect(t.x).toBe(tank.x1)
+  })
+})

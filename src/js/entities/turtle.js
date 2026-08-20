@@ -55,6 +55,8 @@ const createTurtle = (tank, x, y) => {
 
   t.update = (dt, entities) => {
     if (t.dragged) return;
+    const wasClimbing = t.climbing;
+    const wasVx = t.vx;
     if (checkNudge(t, entities)) {
       const r = Math.random();
       if (r < 0.1) startPanic(t);
@@ -125,8 +127,18 @@ const createTurtle = (tank, x, y) => {
     t._surfY = surfYT;
     if (t.y >= surfYT) { t.y = surfYT; t.vy = 0; t.climbing = false; t.vx *= 0.85; if (!t.idle) t.idle = 0.3 + Math.random() * 1.5; }
     if (t.y <= tank.y1) { t.y = tank.y1; t.vy = Math.abs(t.vy) * 0.3; }
-    if (t.x <= tank.x1) { t.x = tank.x1; if (!t.climbing && onFloor(entities)) { t.climbing = true; t.vx = 0; t.vy = -0.04; t.idle = 0.5; } else if (!t.climbing) { t.vx = Math.abs(t.vx); } }
-    if (t.x >= tank.x2) { t.x = tank.x2; if (!t.climbing && onFloor(entities)) { t.climbing = true; t.vx = 0; t.vy = -0.04; t.idle = 0.5; } else if (!t.climbing) { t.vx = -Math.abs(t.vx); } }
+    // wasClimbing alone only blocks a climb restart on the exact frame a
+    // climb-down lands -- a turtle that lands at the corner has vx === 0 (a
+    // climb never sets horizontal velocity) and stays parked exactly at
+    // x1/x2, so on the *next* frame wasClimbing is false too and this check
+    // would fire again, restarting the climb it just finished, producing a
+    // rapid climb/land flicker right at the corner (same bug fixed for crab
+    // in #63). Requiring wasVx to actually point into the wall distinguishes
+    // "just walked into the wall" (the real trigger for a new climb) from
+    // "sitting still at the wall after climbing down" (should just stay on
+    // the floor).
+    if (t.x <= tank.x1) { t.x = tank.x1; if (!wasClimbing && wasVx < -0.001 && onFloor(entities)) { t.climbing = true; t.vx = 0; t.vy = -0.04; t.idle = 0.5; } else if (!t.climbing) { t.vx = Math.abs(t.vx); } }
+    if (t.x >= tank.x2) { t.x = tank.x2; if (!wasClimbing && wasVx > 0.001 && onFloor(entities)) { t.climbing = true; t.vx = 0; t.vy = -0.04; t.idle = 0.5; } else if (!t.climbing) { t.vx = -Math.abs(t.vx); } }
   };
 
   t.draw = (ctx) => {
