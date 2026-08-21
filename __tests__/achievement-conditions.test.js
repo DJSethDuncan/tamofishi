@@ -33,6 +33,19 @@ describe('achievement conditions', () => {
     expect(def.condition([...nineFish, { type: 'crab' }])).toBe(true)
   })
 
+  // REGRESSION: fading corpses (e.dead is a truthy countdown while a murdered
+  // or naturally-dying creature floats/fades out, see fish.js/game.js) must
+  // not be counted as "in the tank at once" -- otherwise murdering fish down
+  // to a handful still reads as having 10+ creatures for as long as the
+  // corpses take to decay out of the entities array.
+  test('growing-family does not count fading (dead) creatures toward the total', () => {
+    const achievements = loadConditions()
+    const def = byId(achievements, 'growing-family')
+    const threeLiveFish = Array.from({ length: 3 }, () => ({ type: 'fish' }))
+    const sevenFadingFish = Array.from({ length: 7 }, () => ({ type: 'fish', dead: 900 }))
+    expect(def.condition([...threeLiveFish, ...sevenFadingFish])).toBe(false)
+  })
+
   test('full-house requires one of every live creature type', () => {
     const achievements = loadConditions()
     const def = byId(achievements, 'full-house')
@@ -85,6 +98,23 @@ describe('achievement conditions', () => {
       expect(dwayne.condition(rocks(10))).toBe(true)
       expect(amaze.condition(rocks(10))).toBe(false)
       expect(amaze.condition(rocks(25))).toBe(true)
+    })
+
+    // REGRESSION: murdered/dying entities aren't spliced out of the entities
+    // array immediately -- they linger with a truthy e.dead countdown while
+    // they fade out (see fish.js's startDying and game.js's handleTap murder
+    // branch). A concurrent-count achievement checking the raw snapshot would
+    // count those fading corpses as still "present", letting a count-based
+    // achievement fire even though the tank doesn't actually hold that many
+    // live creatures right now.
+    test('a fading (murdered) snail does not count toward escargogogo', () => {
+      const achievements = loadConditions()
+      const def = byId(achievements, 'escargogogo')
+      const snails = Array.from({ length: 24 }, () => ({ type: 'snail' }))
+      const fadingSnail = { type: 'snail', dead: 900 }
+      expect(def.condition([...snails, fadingSnail])).toBe(false)
+      const liveSnail = { type: 'snail' }
+      expect(def.condition([...snails, liveSnail])).toBe(true)
     })
   })
 
