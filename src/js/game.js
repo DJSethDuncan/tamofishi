@@ -311,7 +311,11 @@ const handleTap = (tx, ty, e) => {
   }
   if (ty <= TANK.y1 + 4) { feedAt(tx); return; }
   const hit = entities.find(ent => ent.panic !== undefined && Math.hypot(ent.x - tx, ent.y - ty) < 3);
-  if (hit) startPanic(hit);
+  if (hit) { startPanic(hit); return; }
+  // A tap that landed on empty water -- not a decor/creature drag target
+  // (chestHit, computed above), not feeding, not startling a critter --
+  // reads as "click the background," so spawn a decorative bubble there.
+  if (!chestHit) entities.push(createMeanderingBubble(TANK, tx, ty, null));
 };
 
 canvas.addEventListener('click', (e) => {
