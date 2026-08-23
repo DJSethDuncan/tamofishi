@@ -28,7 +28,7 @@ const TANK = { x1: 2, y1: 2, x2: W - 3, y2: H - 5, background: 'gradient', stats
 
 const entities = [];
 
-const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size, phase: e.phase, intensity: e.intensity });
+const serializeEntity = (e) => ({ type: e.type, x: e.x, y: e.y, sex: e.sex, age: e.age, size: e.size, phase: e.phase, intensity: e.intensity, growth: e.growth, lastGrowthAt: e.lastGrowthAt });
 
 const buildStateObject = () => ({
   entities: entities.filter(e => e.type !== 'flake' && e.type !== 'bubble' && !e.dead).map(serializeEntity),
@@ -62,7 +62,15 @@ const applyState = (raw) => {
       if (s.type === 'snail') { const n = createSnail(TANK, s.x, s.y); n.sex = s.sex; entities.push(n); }
       if (s.type === 'turtle') { const tt = createTurtle(TANK, s.x, s.y); tt.sex = s.sex; entities.push(tt); }
       if (s.type === 'duckweed') entities.push(createDuckweed(TANK, s.x));
-      if (s.type === 'plant') entities.push(createPlant(TANK, s.x, s.size));
+      if (s.type === 'plant') {
+        const pl = createPlant(TANK, s.x, s.size);
+        if (s.growth) {
+          pl.growth = s.growth;
+          pl.lastGrowthAt = s.lastGrowthAt || Date.now();
+          pl.applyGrowth();
+        }
+        entities.push(pl);
+      }
       if (s.type === 'rock') entities.push(createRock(TANK, s.x, s.size));
       if (s.type === 'treasure-chest') { const tc = createTreasureChest(TANK, s.x); if (s.intensity) tc.intensity = s.intensity; entities.push(tc); }
       if (s.type === 'bubbler-rock') { const br = createBubblerRock(TANK, s.x); if (s.intensity) br.intensity = s.intensity; entities.push(br); }
