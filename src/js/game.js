@@ -64,7 +64,7 @@ const applyState = (raw) => {
       if (s.type === 'duckweed') entities.push(createDuckweed(TANK, s.x));
       if (s.type === 'plant') {
         const pl = createPlant(TANK, s.x, s.size);
-        if (s.growth) {
+        if (s.growth !== undefined) {
           pl.growth = s.growth;
           pl.lastGrowthAt = s.lastGrowthAt || Date.now();
           pl.applyGrowth();
