@@ -254,6 +254,20 @@ canvas.addEventListener('mouseup', () => {
 });
 
 const handleTap = (tx, ty, e) => {
+  // Checked before the mode-specific branches below so the chest -- the
+  // only way into settings, and the only way out of murder/prune mode
+  // short of their own STOP buttons or Escape -- stays clickable no matter
+  // what mode is active.
+  const chestHit = findDraggable(tx, ty);
+  if (chestHit && chestHit.type === 'treasure-chest') {
+    chestHit.triggerBurst(entities);
+    // Stop this same click from immediately bubbling into the document-level
+    // "click outside the panel closes it" listener below, which would
+    // otherwise close the panel the instant it opens.
+    if (e) e.stopPropagation();
+    addPanel.classList.remove('hidden');
+    return;
+  }
   if (pruneMode) {
     const hit = entities.find(ent => (ent.type === 'plant' || ent.type === 'duckweed') && !ent.dead && Math.hypot(ent.x - tx, ent.y - ty) < 4);
     if (hit) {
@@ -267,18 +281,6 @@ const handleTap = (tx, ty, e) => {
       };
       entities.forEach(e => { if (e.plant === hit) { e.plant = null; e.perched = false; } });
     }
-    return;
-  }
-  const chestHit = findDraggable(tx, ty);
-  if (chestHit && chestHit.type === 'treasure-chest') {
-    chestHit.triggerBurst(entities);
-    // Stop this same click from immediately bubbling into the document-level
-    // "click outside the panel closes it" listener below, which would
-    // otherwise close the panel the instant it opens. Also the only way out
-    // of murder mode short of the STOP MURDER button, so it must stay
-    // clickable while murderMode is active.
-    if (e) e.stopPropagation();
-    addPanel.classList.remove('hidden');
     return;
   }
   if (murderMode) {
@@ -397,47 +399,68 @@ canvas.addEventListener('touchcancel', () => {
 let murderMode = false;
 let pruneMode = false;
 
+// A display preference, not tank state -- persisted directly in
+// localStorage (like storage.js's own tank save channel) rather than
+// riding buildStateObject/applyState, so it isn't tied to a particular
+// tank save and survives CLEAR TANK.
+const SCREEN_SCHEME_KEY = 'tamofishi-screen-scheme';
+let screenScheme = (() => {
+  try { return localStorage.getItem(SCREEN_SCHEME_KEY) === 'amber' ? 'amber' : 'green'; }
+  catch { return 'green'; }
+})();
+
 // Generate knife cursor
-const knifeCursor = (() => {
+const makeKnifeCursor = (accent) => {
   const kc = document.createElement('canvas');
   const px = 4;
   kc.width = 5 * px; kc.height = 5 * px;
   const kx = kc.getContext('2d');
-  const pixels = [[0,0],[1,1],[2,2],[3,3],[2,4],[4,2],[4,4],[3,1]];
   // Blade
   kx.fillStyle = '#cccccc';
   [[0,0],[1,1],[2,2]].forEach(([x,y]) => kx.fillRect(x*px, y*px, px, px));
   // Handle + guard
-  kx.fillStyle = '#33ff33';
+  kx.fillStyle = accent;
   [[3,3],[2,4],[4,2],[4,4]].forEach(([x,y]) => kx.fillRect(x*px, y*px, px, px));
   return `url(${kc.toDataURL()}) 0 0, crosshair`;
-})();
+};
 
 // Generate scissors cursor
-const scissorsCursor = (() => {
+const makeScissorsCursor = (accent) => {
   const sc = document.createElement('canvas');
   const px = 4;
   sc.width = 5 * px; sc.height = 5 * px;
   const sx = sc.getContext('2d');
   sx.fillStyle = '#cccccc';
   [[0,0],[1,1],[4,0],[3,1],[2,2]].forEach(([x,y]) => sx.fillRect(x*px, y*px, px, px));
-  sx.fillStyle = '#33ff33';
+  sx.fillStyle = accent;
   [[1,3],[0,4],[3,3],[4,4]].forEach(([x,y]) => sx.fillRect(x*px, y*px, px, px));
   return `url(${sc.toDataURL()}) 0 0, crosshair`;
-})();
+};
 
 const shockwaves = [];
 
 // Generate arrow cursor
-const arrowCursor = (() => {
+const makeArrowCursor = (accent) => {
   const ac = document.createElement('canvas');
   const px = 4;
   ac.width = 5 * px; ac.height = 5 * px;
   const ax = ac.getContext('2d');
-  ax.fillStyle = '#33ff33';
+  ax.fillStyle = accent;
   [[0,0],[1,0],[2,0],[0,1],[1,1],[0,2],[2,2],[3,3],[4,4]].forEach(([x,y]) => ax.fillRect(x*px, y*px, px, px));
   return `url(${ac.toDataURL()}) 0 0, auto`;
-})();
+};
+
+// Cursors are native cursor images, not filtered by #app-wrap's hue-rotate
+// (see colorScheme.js), so they're rebuilt in the matching accent whenever
+// the screen scheme changes rather than drawn once at load.
+let knifeCursor, scissorsCursor, arrowCursor;
+const regenerateCursors = () => {
+  const accent = cursorAccentFor(screenScheme);
+  knifeCursor = makeKnifeCursor(accent);
+  scissorsCursor = makeScissorsCursor(accent);
+  arrowCursor = makeArrowCursor(accent);
+};
+regenerateCursors();
 canvas.style.cursor = arrowCursor;
 
 const setMurderMode = (on) => {
@@ -453,7 +476,9 @@ const setMurderMode = (on) => {
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && murderMode) setMurderMode(false);
+  if (e.key !== 'Escape') return;
+  if (murderMode) setMurderMode(false);
+  if (pruneMode) setPruneMode(false);
 });
 
 const setPruneMode = (on) => {
@@ -500,28 +525,18 @@ backgroundBtn.addEventListener('click', () => {
   updateBackgroundBtnLabel();
   saveState();
 });
-// A display preference, not tank state -- persisted directly in
-// localStorage (like storage.js's own tank save channel) rather than
-// riding buildStateObject/applyState, so it isn't tied to a particular
-// tank save and survives CLEAR TANK.
-const SCREEN_SCHEME_KEY = 'tamofishi-screen-scheme';
 const screenSchemeBtn = document.getElementById('screen-scheme-btn');
-let screenScheme = (() => {
-  try { return localStorage.getItem(SCREEN_SCHEME_KEY) === 'amber' ? 'amber' : 'green'; }
-  catch { return 'green'; }
-})();
-// Sums whichever of the two hue-rotate shifts are currently active (amber
-// screen scheme, murder mode) into the single --hue-shift CSS variable
-// #app-wrap's filter reads (see style.css) -- referenced by setMurderMode
-// above too, so either one changing keeps the combined rotation correct
+// The combined --hue-shift CSS variable #app-wrap's filter reads (see
+// style.css and colorScheme.js) -- referenced by setMurderMode above too,
+// so either murder mode or the screen scheme changing keeps it correct
 // regardless of which toggled.
 const updateColorFilter = () => {
-  const amberDeg = screenScheme === 'amber' ? -80 : 0;
-  const murderDeg = murderMode ? -120 : 0;
-  document.getElementById('app-wrap').style.setProperty('--hue-shift', `${amberDeg + murderDeg}deg`);
+  document.getElementById('app-wrap').style.setProperty('--hue-shift', `${computeHueShift(screenScheme, murderMode)}deg`);
 };
 const applyScreenScheme = () => {
   updateColorFilter();
+  regenerateCursors();
+  canvas.style.cursor = murderMode ? knifeCursor : (pruneMode ? scissorsCursor : arrowCursor);
   screenSchemeBtn.textContent = `SCREEN: ${screenScheme.toUpperCase()}`;
 };
 screenSchemeBtn.addEventListener('click', () => {
