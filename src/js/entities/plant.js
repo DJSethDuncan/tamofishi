@@ -140,7 +140,12 @@ const createPlant = (tank, x, size) => {
       for (let i = 0; i < checks; i++) {
         if (Math.random() < 0.5) { p.growth += 1 + Math.floor(Math.random() * 3); grew = true; }
       }
-      p.lastGrowthAt += daysElapsed * DAY_MS;
+      // Advance by only the days actually rolled, not all of daysElapsed --
+      // otherwise a tank reopened after a long gap (daysElapsed >
+      // MAX_GROWTH_CHECKS_PER_TICK) would jump lastGrowthAt straight to
+      // "now" and permanently lose every day beyond the per-tick cap
+      // instead of catching up on them over the next few ticks.
+      p.lastGrowthAt += checks * DAY_MS;
       if (grew) applyGrowth();
     }
 
