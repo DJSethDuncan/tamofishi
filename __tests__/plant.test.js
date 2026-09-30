@@ -161,6 +161,26 @@ describe('createPlant — growth', () => {
     expect(Date.now() - p.lastGrowthAt).toBeLessThan(1000)
   })
 
+  test('update() only advances lastGrowthAt by the checks actually rolled, not the full elapsed gap', () => {
+    // REGRESSION: a tank reopened after a long gap (daysElapsed far beyond
+    // MAX_GROWTH_CHECKS_PER_TICK) used to jump lastGrowthAt straight to
+    // "now", silently losing every day past the per-tick cap forever
+    // instead of catching up on them over subsequent ticks.
+    const ctx = loadEntity('plant.js', 0.1)
+    const p = ctx.createPlant(makeTank(), 90, 'short')
+    const DAY_MS = 24 * 60 * 60 * 1000
+    const MAX_GROWTH_CHECKS_PER_TICK = 60
+    const start = Date.now() - DAY_MS * (MAX_GROWTH_CHECKS_PER_TICK + 40)
+    p.lastGrowthAt = start
+    p.update(1 / 60, [])
+    expect(p.lastGrowthAt).toBe(start + MAX_GROWTH_CHECKS_PER_TICK * DAY_MS)
+
+    // The remaining days must still roll on a later tick instead of being lost.
+    const growthAfterFirstTick = p.growth
+    p.update(1 / 60, [])
+    expect(p.growth).toBeGreaterThan(growthAfterFirstTick)
+  })
+
   test('update() does not roll growth before a full day has elapsed', () => {
     const ctx = loadEntity('plant.js', 0.1)
     const p = ctx.createPlant(makeTank(), 90, 'short')
