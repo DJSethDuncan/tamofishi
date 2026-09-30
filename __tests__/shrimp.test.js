@@ -28,6 +28,35 @@ function loadShrimpCtx(fixedRandom = 0) {
   return ctx
 }
 
+// Like loadShrimpCtx, but Math.random() returns the next value from an armed
+// sequence on each call instead of one constant for every call -- needed to
+// drive the birth roll and the litter-size roll to different values in the
+// same update() (a single fixedRandom small enough to win the birth roll
+// always floors the litter size to 1, so it can never exercise a litter > 1).
+// Defaults to always returning 0 until armSequence() is called, so fixture
+// setup (padding the entity list with createShrimp calls, which themselves
+// roll Math.random() for idle/sex) doesn't consume the armed sequence before
+// the call under test even starts.
+function loadShrimpCtxSeq() {
+  let sequence = []
+  let i = 0
+  const m = Object.create(Math, {
+    random: { value: () => sequence[i++] ?? 0, writable: true, enumerable: true, configurable: true },
+  })
+  const ctx = createContext({ Math: m, getSurfaceY: (_x, _y, _entities, floor) => floor })
+  const run = (file) => {
+    const code = readFileSync(file, 'utf8')
+    runInContext(code.replace(/\bconst\b/g, 'var'), ctx)
+  }
+  run(join(__dir, '../src/js/behaviors/feeding.js'))
+  run(join(__dir, '../src/js/behaviors/panic.js'))
+  run(join(__dir, '../src/js/behaviors/nudge.js'))
+  run(join(__dir, '../src/js/behaviors/cursor.js'))
+  run(join(__dir, '../src/js/entities/shrimp.js'))
+  ctx.armSequence = (seq) => { sequence = seq; i = 0 }
+  return ctx
+}
+
 describe('shrimp — plant detection at floor level', () => {
   test('shrimp at floor level detects plant and starts climbing toward goalY', () => {
     // REGRESSION: findPlantAt used `sh.y < FLOOR` (strict), so a shrimp standing
@@ -143,6 +172,43 @@ describe('shrimp — birth is capped and slowed', () => {
     sh.update(0.1, entities)
 
     expect(entities.length).toBe(2)
+  })
+
+  test('a litter that would overshoot the cap is trimmed to what is left under it', () => {
+    // REGRESSION: the cap was only checked once (shrimpCount < SHRIMP_MAX)
+    // before rolling a 1-3 litter and pushing the whole thing unconditionally
+    // -- a litter of 3 rolled when the population was 1 below the cap could
+    // push the population 2 over it.
+    //
+    // Math.random() call order inside one update() tick for this entity
+    // state: [0]/[1] movement decisions, [2] the birth-roll check itself,
+    // [3] the litter-size roll, [4] the new shrimp's x-offset jitter, then
+    // whatever createShrimp() itself rolls for each new shrimp's own fields.
+    // 0.0000001 passes the birth roll (< 0.000002); 0.99 floors to a 3-shrimp
+    // litter (1 + floor(0.99 * 3) = 3) if left unclamped.
+    const ctx = loadShrimpCtxSeq()
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    sh.sex = 'f'
+    sh.age = 1000
+    sh.idle = 0
+    sh.panic = 0
+    sh.perched = false
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    // Pad to SHRIMP_MAX - 1 (19) total shrimp, including sh itself, so an
+    // unclamped 3-shrimp litter would land at 22 -- 2 over the cap of 20.
+    // Arm the sequence only after padding: each padding createShrimp call
+    // rolls Math.random() itself, and must not consume the armed sequence
+    // meant for sh's own update() below.
+    const entities = [sh]
+    for (let i = entities.length; i < 19; i++) entities.push(ctx.createShrimp(tank, 10 + i, 55))
+    ctx.armSequence([0, 0, 0.0000001, 0.99])
+
+    sh.update(0.1, entities)
+
+    expect(entities.length).toBe(20)
   })
 
   test('a female younger than the maturity threshold does not give birth', () => {
