@@ -126,6 +126,37 @@ describe('shrimp — birth is capped and slowed', () => {
     expect(entities.length).toBe(20)
   })
 
+  test('fading (dead) shrimp are not counted toward the population cap', () => {
+    // REGRESSION: the cap check counted every shrimp entity, including ones
+    // with a truthy e.dead fade-out countdown (set by murder mode, lingers
+    // up to 900 ticks) -- so murdering a tank down to a handful of shrimp
+    // still blocked new litters for as long as the corpses took to decay,
+    // even though the live population was well under SHRIMP_MAX. Same bug
+    // class already fixed for achievement-conditions.js's aliveEntities().
+    const ctx = loadShrimpCtx(0)
+    const tank = makeTank()
+    const sh = ctx.createShrimp(tank, 50, 55)
+    sh.sex = 'f'
+    sh.age = 1000
+    sh.idle = 0
+    sh.panic = 0
+    sh.perched = false
+    sh.target = null
+    sh.goalX = undefined
+    sh.goalY = undefined
+    // Pad up to SHRIMP_MAX (20) with fading shrimp -- they shouldn't count.
+    const entities = [sh]
+    for (let i = entities.length; i < 20; i++) {
+      const dying = ctx.createShrimp(tank, 10 + i, 55)
+      dying.dead = 900
+      entities.push(dying)
+    }
+
+    sh.update(0.1, entities)
+
+    expect(entities.length).toBe(21)
+  })
+
   test('an adult female under the cap gives birth to 1-3 shrimp when the roll succeeds', () => {
     const ctx = loadShrimpCtx(0) // Math.random() always returns 0 -- wins the birth roll, litter size floors to 1
     const tank = makeTank()

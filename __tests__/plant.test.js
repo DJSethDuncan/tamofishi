@@ -201,4 +201,18 @@ describe('createPlant — procreation', () => {
     p.update(1 / 60, entities)
     expect(entities.length).toBe(31)
   })
+
+  test('fading (dead) plants do not count toward the population cap', () => {
+    // REGRESSION: a murdered plant gets a truthy e.dead fade-out countdown
+    // (see game.js's murder-mode handleTap) and lingers in the entities
+    // array while it fades -- the cap check counted it anyway, so it could
+    // keep blocking new procreation for as long as the fade takes even
+    // though the live population is well under PLANT_MAX.
+    const ctx = loadEntity('plant.js', 0.0000001)
+    const p = ctx.createPlant(makeTank(), 90, 'medium')
+    const entities = [p]
+    for (let i = 0; i < 30; i++) entities.push({ type: 'plant', dead: 1.5 })
+    p.update(1 / 60, entities)
+    expect(entities.length).toBe(32)
+  })
 })

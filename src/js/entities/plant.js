@@ -148,7 +148,12 @@ const createPlant = (tank, x, size) => {
     // once per few real hours per adult at 60fps), but with a hard
     // population cap since a plant, unlike a fish, never dies on its own.
     if (entities && Math.random() < 0.0000015) {
-      const plantCount = entities.filter((e) => e.type === 'plant').length;
+      // Excludes fading (e.dead) plants -- same reasoning as
+      // achievement-conditions.js's aliveEntities(): a murdered plant lingers
+      // in the entities array with a truthy e.dead countdown while it fades,
+      // so counting it toward PLANT_MAX would keep blocking new procreation
+      // for as long as the fade takes even though it's visibly disappearing.
+      const plantCount = entities.filter((e) => e.type === 'plant' && !e.dead).length;
       if (plantCount < PLANT_MAX) {
         entities.push(createPlant(tank, p.x + (Math.random() - 0.5) * 4, 'short'));
       }

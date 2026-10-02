@@ -93,6 +93,28 @@ describe('createDuckweed', () => {
     // Only 1 live duckweed exists (the rest are eaten), so a new one is allowed.
     expect(entities.length).toBe(41)
   })
+
+  test('fading (dead) duckweed do not count toward the population cap', () => {
+    // REGRESSION: a murdered patch gets a truthy e.dead fade-out countdown
+    // (see game.js's murder-mode handleTap) and lingers in the entities
+    // array while it fades -- the cap check excluded eaten patches but not
+    // dead ones, so it could keep blocking new growth for as long as the
+    // fade takes even though the live population is well under the cap.
+    const ctx = loadDuckweed()
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const tank = makeTank()
+    const d = ctx.createDuckweed(tank, 50)
+    const fadingDuckweed = Array.from({ length: 39 }, () => {
+      const e = ctx.createDuckweed(tank, 10)
+      e.dead = 1.5
+      return e
+    })
+    const entities = [d, ...fadingDuckweed]
+
+    d.update(1, entities)
+    // Only 1 live duckweed exists (the rest are fading), so a new one is allowed.
+    expect(entities.length).toBe(41)
+  })
 })
 
 describe('createDuckweed — shadow', () => {
