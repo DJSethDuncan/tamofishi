@@ -19,8 +19,13 @@ const createDuckweed = (tank, x) => {
     if (d.x < tank.x1 + 1) d.x = tank.x1 + 1;
     if (d.x > tank.x2 - 1) d.x = tank.x2 - 1;
 
-    // Reproduce if not too crowded
-    const count = entities.filter(e => e.type === 'duckweed' && !e.eaten).length;
+    // Reproduce if not too crowded. Excludes fading (e.dead) patches too --
+    // same reasoning as achievement-conditions.js's aliveEntities(): a
+    // murdered patch lingers in the entities array with a truthy e.dead
+    // countdown while it fades, so counting it toward DUCKWEED_MAX would
+    // keep blocking new growth for as long as the fade takes even though
+    // the patch is visibly disappearing.
+    const count = entities.filter(e => e.type === 'duckweed' && !e.eaten && !e.dead).length;
     if (count < DUCKWEED_MAX && Math.random() < 0.00015) {
       entities.push(createDuckweed(tank, d.x + (Math.random() - 0.5) * 3));
     }

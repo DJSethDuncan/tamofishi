@@ -166,7 +166,13 @@ const createShrimp = (tank, x, y) => {
     // compounds without bound. Litter size and odds both trimmed down from
     // the original (1-5 per roll at 0.0000046/tick, uncapped) -- Seth
     // reported shrimp still multiplying too fast even with the cap-free math.
-    const shrimpCount = entities.filter(e => e.type === 'shrimp').length;
+    // Excludes fading (e.dead) shrimp -- same reasoning as
+    // achievement-conditions.js's aliveEntities(): a murdered shrimp lingers
+    // in the entities array with a truthy e.dead countdown (up to 900 ticks)
+    // while it fades, so counting it toward SHRIMP_MAX would keep blocking
+    // new litters for as long as the fade takes even though the tank's live
+    // population is well under the cap.
+    const shrimpCount = entities.filter(e => e.type === 'shrimp' && !e.dead).length;
     if (shrimpCount < SHRIMP_MAX && sh.age >= 900 && sh.sex === 'f' && Math.random() < 0.000002) {
       const count = 1 + Math.floor(Math.random() * 3);
       for (let i = 0; i < count; i++) entities.push(createShrimp(tank, sh.x + (Math.random() - 0.5) * 2, sh.y));
