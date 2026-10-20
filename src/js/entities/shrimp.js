@@ -174,7 +174,11 @@ const createShrimp = (tank, x, y) => {
     // population is well under the cap.
     const shrimpCount = entities.filter(e => e.type === 'shrimp' && !e.dead).length;
     if (shrimpCount < SHRIMP_MAX && sh.age >= 900 && sh.sex === 'f' && Math.random() < 0.000002) {
-      const count = 1 + Math.floor(Math.random() * 3);
+      // Clamp the litter to what's left under the cap -- a 1-3 litter rolled
+      // when the population is 1-2 below SHRIMP_MAX would otherwise push
+      // straight past it (only the count check above re-reads shrimpCount;
+      // nothing re-checks it per shrimp pushed in the loop below).
+      const count = Math.min(1 + Math.floor(Math.random() * 3), SHRIMP_MAX - shrimpCount);
       for (let i = 0; i < count; i++) entities.push(createShrimp(tank, sh.x + (Math.random() - 0.5) * 2, sh.y));
     }
 
